@@ -57,7 +57,7 @@ func printTasks(out io.Writer, taskListID string, tasks []*googletasks.Task) {
 		}
 
 		fmt.Fprintln(out, "  notes: |")
-		for _, line := range strings.Split(notes, "\n") {
+		for line := range strings.SplitSeq(notes, "\n") {
 			fmt.Fprintf(out, "    %s\n", line)
 		}
 	}
