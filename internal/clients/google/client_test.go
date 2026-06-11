@@ -14,6 +14,7 @@ import (
 )
 
 func TestListUncompletedMapsGoogleTasksFromAPI(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -67,6 +68,7 @@ func TestListUncompletedMapsGoogleTasksFromAPI(t *testing.T) {
 }
 
 func TestCompletePatchesGoogleTaskStatus(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {
@@ -97,6 +99,7 @@ func TestCompletePatchesGoogleTaskStatus(t *testing.T) {
 }
 
 func TestDeleteDeletesGoogleTask(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
@@ -116,7 +119,74 @@ func TestDeleteDeletesGoogleTask(t *testing.T) {
 	}
 }
 
+// Collects all tasks from every page when the API paginates the response.
+func TestListUncompletedCollectsTasksAcrossPages(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	page := 0
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		page++
+		switch page {
+		case 1:
+			if r.URL.Query().Get("pageToken") != "" {
+				t.Fatalf("unexpected pageToken on first request: %s", r.URL.Query().Get("pageToken"))
+			}
+			writeJSON(t, w, map[string]any{
+				"items": []map[string]string{
+					{"id": "google-1", "title": "First task"},
+				},
+				"nextPageToken": "page-2-token",
+			})
+		case 2:
+			if r.URL.Query().Get("pageToken") != "page-2-token" {
+				t.Fatalf("unexpected pageToken on second request: %s", r.URL.Query().Get("pageToken"))
+			}
+			writeJSON(t, w, map[string]any{
+				"items": []map[string]string{
+					{"id": "google-2", "title": "Second task"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected page request: %d", page)
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestClient(t, ctx, server.URL+"/")
+	got, err := client.ListUncompleted(ctx)
+	if err != nil {
+		t.Fatalf("list uncompleted: %v", err)
+	}
+
+	if len(got) != 2 {
+		t.Fatalf("expected 2 tasks, got %d", len(got))
+	}
+	if got[0].ID != "google-1" || got[0].Title != "First task" {
+		t.Fatalf("unexpected first task: %+v", got[0])
+	}
+	if got[1].ID != "google-2" || got[1].Title != "Second task" {
+		t.Fatalf("unexpected second task: %+v", got[1])
+	}
+}
+
+// Returns an error when the API responds with a non-2xx status code.
+func TestListUncompletedReturnsErrorOnNon2xxResponse(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestClient(t, ctx, server.URL+"/")
+	_, err := client.ListUncompleted(ctx)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestMapTaskMapsGoogleTaskFields(t *testing.T) {
+	t.Parallel()
 	task := &googletasks.Task{
 		Id:      "google-1",
 		Title:   "Buy milk",
@@ -142,6 +212,7 @@ func TestMapTaskMapsGoogleTaskFields(t *testing.T) {
 }
 
 func TestMapTaskHandlesNilTask(t *testing.T) {
+	t.Parallel()
 	got := mapTask(nil)
 	if got != (googletasksync.GoogleTask{}) {
 		t.Fatalf("unexpected mapped task: %+v", got)

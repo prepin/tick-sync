@@ -21,6 +21,7 @@ type Config struct {
 	GoogleRefreshToken string
 	GoogleTokenType    string
 	GoogleTokenExpiry  time.Time
+	GoogleAPIEndpoint  string
 	GoogleTaskListID   string
 
 	TickTickAccessToken string

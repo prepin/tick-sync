@@ -55,7 +55,7 @@ description: Proactively use when writing, updating, fixing, or reviewing tests 
 //go:generate go tool mockgen -source=interfaces.go -destination=mocks/mock.go -package=mocks
 ```
 
-- Never edit mock files manually. Use `make generate` to refresh mocks.
+- Never edit mock files manually. Use `go generate ./...` or `mise run generate` to refresh mocks.
 - Never use manually written stubs/mocks/etc. Always use generated mocks.
 - If complex mock setup reused in multiple test cases, extract it to expectMockSetupName helper function. Helper names must be specific and descriptive.
 - Mock setup helpers are allowed only when they remove meaningful repetition; tiny helpers that only wrap `gomock.NewController` or one mock constructor should usually be inlined.
@@ -76,4 +76,4 @@ description: Proactively use when writing, updating, fixing, or reviewing tests 
 
 ## Tooling
 
-- use `make test` to run whole test suite
+- use `go test ./...` or `mise run test` to run whole test suite

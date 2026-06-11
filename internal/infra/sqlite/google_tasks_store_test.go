@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -135,6 +136,66 @@ func TestNewGoogleTasksStoreRejectsNilDB(t *testing.T) {
 	_, err := NewGoogleTasksStore(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+// NewGoogleTasksStore fails when table creation cannot execute on a closed database.
+func TestNewGoogleTasksStoreReturnsErrorWhenTableCreationFails(t *testing.T) {
+	ctx := context.Background()
+	db := openTestDB(t)
+	if err := db.Close(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+
+	_, err := NewGoogleTasksStore(ctx, db)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "create synced_google_tasks table") {
+		t.Fatalf("expected error about table creation, got %v", err)
+	}
+}
+
+// IsProcessed returns an error when the database is no longer available.
+func TestGoogleTasksStoreIsProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
+	ctx := context.Background()
+	store := newTestStore(t, ctx)
+	if err := store.db.Close(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+
+	processed, err := store.IsProcessed(ctx, "google-1")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if processed {
+		t.Fatal("expected task to be unprocessed")
+	}
+}
+
+// MarkProcessed returns an error when the database is no longer available.
+func TestGoogleTasksStoreMarkProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
+	ctx := context.Background()
+	store := newTestStore(t, ctx)
+	if err := store.db.Close(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+
+	err := store.MarkProcessed(ctx, syncedTaskRecord())
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "mark synced google task") {
+		t.Fatalf("expected error about marking synced task, got %v", err)
+	}
+}
+
+// formatTime produces RFC3339Nano output in UTC regardless of input timezone.
+func TestFormatTimeReturnsRFC3339NanoUTC(t *testing.T) {
+	input := time.Date(2026, 6, 10, 12, 0, 0, 123, time.FixedZone("EST", -5*60*60))
+	got := formatTime(input)
+	if got != "2026-06-10T17:00:00.000000123Z" {
+		t.Fatalf("unexpected formatted time: %q", got)
 	}
 }
 

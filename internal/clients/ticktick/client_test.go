@@ -3,6 +3,7 @@ package ticktick
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestCreateInboxTaskPostsTaskWithoutProjectID(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -62,6 +64,7 @@ func TestCreateInboxTaskPostsTaskWithoutProjectID(t *testing.T) {
 }
 
 func TestCreateInboxTaskIncludesProjectIDWhenConfigured(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
@@ -80,6 +83,7 @@ func TestCreateInboxTaskIncludesProjectIDWhenConfigured(t *testing.T) {
 }
 
 func TestCreateInboxTaskOmitsDueDateWhenMissing(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
@@ -103,6 +107,7 @@ func TestCreateInboxTaskOmitsDueDateWhenMissing(t *testing.T) {
 }
 
 func TestCreateInboxTaskReturnsNon2xxErrorWithBody(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"projectId required"}`, http.StatusBadRequest)
@@ -120,6 +125,7 @@ func TestCreateInboxTaskReturnsNon2xxErrorWithBody(t *testing.T) {
 }
 
 func TestCreateInboxTaskReturnsInvalidJSONError(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("not-json"))
@@ -137,6 +143,7 @@ func TestCreateInboxTaskReturnsInvalidJSONError(t *testing.T) {
 }
 
 func TestCreateInboxTaskReturnsMissingIDError(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(t, w, map[string]string{"title": "Buy milk"})
@@ -154,6 +161,7 @@ func TestCreateInboxTaskReturnsMissingIDError(t *testing.T) {
 }
 
 func TestCreateInboxTaskReturnsInvalidDueDateError(t *testing.T) {
+	t.Parallel()
 	client := newTestClient(t, "https://example.com", "")
 	_, err := client.CreateInboxTask(context.Background(), googletasksync.TickTickTaskInput{
 		Title: "Buy milk",
@@ -168,6 +176,7 @@ func TestCreateInboxTaskReturnsInvalidDueDateError(t *testing.T) {
 }
 
 func TestNewRequiresAccessToken(t *testing.T) {
+	t.Parallel()
 	_, err := New(config.Config{TickTickAPIBaseURL: "https://example.com"})
 	if err == nil {
 		t.Fatal("expected error")
@@ -175,6 +184,7 @@ func TestNewRequiresAccessToken(t *testing.T) {
 }
 
 func TestNewAppliesDefaults(t *testing.T) {
+	t.Parallel()
 	client, err := New(config.Config{TickTickAccessToken: "ticktick-token"})
 	if err != nil {
 		t.Fatalf("new ticktick client: %v", err)
@@ -189,6 +199,7 @@ func TestNewAppliesDefaults(t *testing.T) {
 }
 
 func TestNewRejectsRelativeBaseURL(t *testing.T) {
+	t.Parallel()
 	_, err := New(config.Config{
 		TickTickAccessToken: "ticktick-token",
 		TickTickAPIBaseURL:  "/open/v1",
@@ -199,6 +210,7 @@ func TestNewRejectsRelativeBaseURL(t *testing.T) {
 }
 
 func TestFormatDueDate(t *testing.T) {
+	t.Parallel()
 	got, ok, err := formatDueDate("2026-06-12T00:00:00.000Z")
 	if err != nil {
 		t.Fatalf("format due date: %v", err)
@@ -209,6 +221,21 @@ func TestFormatDueDate(t *testing.T) {
 	if got != "2026-06-12T00:00:00+0000" {
 		t.Fatalf("unexpected due date: %s", got)
 	}
+}
+
+// readErrorBody returns a fallback message when the response body cannot be read.
+func TestReadErrorBodyReturnsFallbackMessageWhenReadFails(t *testing.T) {
+	t.Parallel()
+	got := readErrorBody(&faultyReader{})
+	if got != "<failed to read response body>" {
+		t.Fatalf("unexpected error body: %q", got)
+	}
+}
+
+type faultyReader struct{}
+
+func (f *faultyReader) Read(_ []byte) (int, error) {
+	return 0, errors.New("read failed")
 }
 
 func newTestClient(t *testing.T, baseURL string, projectID string) *Client {

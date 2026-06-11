@@ -12,6 +12,10 @@ import (
 	"github.com/prepin/tick-sync/internal/service"
 )
 
+type syncRunner interface {
+	RunOnce(ctx context.Context) error
+}
+
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -48,7 +52,7 @@ func main() {
 	}
 }
 
-func runSync(ctx context.Context, runner *service.SyncRunner) {
+func runSync(ctx context.Context, runner syncRunner) {
 	log.Println("sync started")
 	if err := runner.RunOnce(ctx); err != nil {
 		log.Printf("sync finished with error: %v", err)

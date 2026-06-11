@@ -19,21 +19,29 @@ type Client struct {
 }
 
 func New(ctx context.Context, cfg config.Config) (*Client, error) {
-	oauthConfig := &oauth2.Config{
-		ClientID:     cfg.GoogleClientID,
-		ClientSecret: cfg.GoogleClientSecret,
-		Endpoint:     googleoauth.Endpoint,
-		Scopes:       []string{googletasks.TasksScope},
+	var opts []option.ClientOption
+
+	if cfg.GoogleAPIEndpoint != "" {
+		opts = append(opts, option.WithEndpoint(cfg.GoogleAPIEndpoint), option.WithoutAuthentication())
+	} else {
+		oauthConfig := &oauth2.Config{
+			ClientID:     cfg.GoogleClientID,
+			ClientSecret: cfg.GoogleClientSecret,
+			Endpoint:     googleoauth.Endpoint,
+			Scopes:       []string{googletasks.TasksScope},
+		}
+
+		token := &oauth2.Token{
+			AccessToken:  cfg.GoogleAccessToken,
+			RefreshToken: cfg.GoogleRefreshToken,
+			TokenType:    cfg.GoogleTokenType,
+			Expiry:       cfg.GoogleTokenExpiry,
+		}
+
+		opts = append(opts, option.WithHTTPClient(oauthConfig.Client(ctx, token)))
 	}
 
-	token := &oauth2.Token{
-		AccessToken:  cfg.GoogleAccessToken,
-		RefreshToken: cfg.GoogleRefreshToken,
-		TokenType:    cfg.GoogleTokenType,
-		Expiry:       cfg.GoogleTokenExpiry,
-	}
-
-	service, err := googletasks.NewService(ctx, option.WithHTTPClient(oauthConfig.Client(ctx, token)))
+	service, err := googletasks.NewService(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
