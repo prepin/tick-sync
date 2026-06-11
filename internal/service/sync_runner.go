@@ -102,8 +102,8 @@ func PrintSyncSummary(summary googletasksync.SyncSummary) {
 	}
 
 	if summary.Failed > 0 || len(summary.Errors) > 0 {
-		slog.LogAttrs(context.Background(), slog.LevelError, "sync summary", attrs...)
+		slog.LogAttrs(context.Background(), slog.LevelError, "sync finished", attrs...)
 	} else {
-		slog.LogAttrs(context.Background(), slog.LevelInfo, "sync summary", attrs...)
+		slog.LogAttrs(context.Background(), slog.LevelInfo, "sync finished", attrs...)
 	}
 }

@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-// runSync logs "sync started" and "sync finished" when RunOnce succeeds.
-func TestRunSyncLogsStartedAndFinishedOnSuccess(t *testing.T) {
+// runSync logs "sync started" and returns nil when RunOnce succeeds.
+func TestRunSyncLogsStartedAndReturnsNilOnSuccess(t *testing.T) {
 	ctx := context.Background()
 	buf := captureLogOutput(t)
 
@@ -22,13 +22,10 @@ func TestRunSyncLogsStartedAndFinishedOnSuccess(t *testing.T) {
 	if !strings.Contains(got, `msg="sync started"`) {
 		t.Fatalf("expected sync started log, got %q", got)
 	}
-	if !strings.Contains(got, `msg="sync finished"`) {
-		t.Fatalf("expected sync finished log, got %q", got)
-	}
 }
 
-// runSync returns the error from RunOnce and logs it without a sync finished info line.
-func TestRunSyncLogsErrorWhenRunOnceFails(t *testing.T) {
+// runSync returns the error from RunOnce and does not log "sync finished".
+func TestRunSyncReturnsErrorWhenRunOnceFails(t *testing.T) {
 	ctx := context.Background()
 	buf := captureLogOutput(t)
 
@@ -44,17 +41,8 @@ func TestRunSyncLogsErrorWhenRunOnceFails(t *testing.T) {
 	if !strings.Contains(got, `msg="sync started"`) {
 		t.Fatalf("expected sync started log, got %q", got)
 	}
-	if !strings.Contains(got, `level=ERROR`) {
-		t.Fatalf("expected error level log, got %q", got)
-	}
-	if !strings.Contains(got, `error="ticktick unavailable"`) {
-		t.Fatalf("expected error detail in log, got %q", got)
-	}
-
-	for _, line := range strings.Split(got, "\n") {
-		if strings.Contains(line, "sync finished") && strings.Contains(line, "level=INFO") {
-			t.Fatalf("did not expect sync finished info log after error, got line %q", line)
-		}
+	if strings.Contains(got, `msg="sync finished"`) {
+		t.Fatal("did not expect sync finished from runSync; PrintSyncSummary logs it inside RunOnce")
 	}
 }
 

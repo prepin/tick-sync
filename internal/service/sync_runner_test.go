@@ -52,7 +52,6 @@ func TestPostSyncActionFromConfigRejectsInvalidAction(t *testing.T) {
 
 // Logs a single summary line with all field values and INFO level when there are no errors.
 func TestPrintSyncSummaryLogsFieldValuesAtInfoLevel(t *testing.T) {
-	t.Parallel()
 	buf := captureSlogOutput(t)
 
 	PrintSyncSummary(googletasksync.SyncSummary{
@@ -90,7 +89,6 @@ func TestPrintSyncSummaryLogsFieldValuesAtInfoLevel(t *testing.T) {
 
 // Logs the error level with an errors field containing non-nil error messages when the sync encountered failures.
 func TestPrintSyncSummaryLogsErrorsAtErrorLevel(t *testing.T) {
-	t.Parallel()
 	buf := captureSlogOutput(t)
 
 	PrintSyncSummary(googletasksync.SyncSummary{

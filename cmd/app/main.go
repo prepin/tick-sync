@@ -59,9 +59,7 @@ func main() {
 func runSync(ctx context.Context, runner syncRunner) error {
 	slog.Info("sync started")
 	if err := runner.RunOnce(ctx); err != nil {
-		slog.Error("sync finished", "error", err)
 		return err
 	}
-	slog.Info("sync finished")
 	return nil
 }
