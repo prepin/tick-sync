@@ -5,6 +5,10 @@ go = "1.26.4"
 description = "Run all Go tests"
 run = "go test ./..."
 
+[tasks.coverage]
+description = "Report Go test coverage"
+run = "go test ./... -coverprofile=/tmp/tick-sync-coverage.out && go tool cover -func=/tmp/tick-sync-coverage.out"
+
 [tasks.generate]
 description = "Generate Go mocks"
 run = "go generate ./..."
