@@ -6,6 +6,44 @@ import (
 	"time"
 )
 
+func TestLoadAppliesOperationalDefaults(t *testing.T) {
+	t.Setenv("DB_PATH", "")
+	t.Setenv("GOOGLE_POST_SYNC_ACTION", "")
+	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
+	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
+	t.Setenv("GOOGLE_ACCESS_TOKEN", "")
+	t.Setenv("GOOGLE_TOKEN_TYPE", "")
+	t.Setenv("GOOGLE_TOKEN_EXPIRY", "")
+	t.Setenv("GOOGLE_TASKLIST_ID", "")
+	t.Setenv("TICKTICK_API_BASE_URL", "")
+	t.Setenv("TICKTICK_TIME_ZONE", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+
+	if cfg.DBPath != "./tick-sync.db" {
+		t.Fatalf("unexpected db path: %s", cfg.DBPath)
+	}
+	if cfg.GooglePostSyncAction != "complete" {
+		t.Fatalf("unexpected post sync action: %s", cfg.GooglePostSyncAction)
+	}
+	if cfg.GoogleTokenType != "Bearer" {
+		t.Fatalf("unexpected google token type: %s", cfg.GoogleTokenType)
+	}
+	if cfg.GoogleTaskListID != "@default" {
+		t.Fatalf("unexpected google task list id: %s", cfg.GoogleTaskListID)
+	}
+	if cfg.TickTickAPIBaseURL != "https://api.ticktick.com/open/v1" {
+		t.Fatalf("unexpected ticktick api base url: %s", cfg.TickTickAPIBaseURL)
+	}
+	if cfg.TickTickTimeZone != "UTC" {
+		t.Fatalf("unexpected ticktick timezone: %s", cfg.TickTickTimeZone)
+	}
+}
+
 func TestValidateRequiresGoogleOAuthValues(t *testing.T) {
 	cfg := Config{}
 
@@ -27,6 +65,18 @@ func TestValidateRequiresGoogleOAuthValues(t *testing.T) {
 }
 
 func TestValidateAllowsRefreshTokenOnly(t *testing.T) {
+	cfg := Config{
+		GoogleClientID:     "client-id",
+		GoogleClientSecret: "client-secret",
+		GoogleRefreshToken: "refresh-token",
+	}
+
+	if err := cfg.Validate(); err != nil {
+		t.Fatalf("validate config: %v", err)
+	}
+}
+
+func TestValidateDoesNotRequireTickTickCredentialsYet(t *testing.T) {
 	cfg := Config{
 		GoogleClientID:     "client-id",
 		GoogleClientSecret: "client-secret",

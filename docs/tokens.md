@@ -164,6 +164,8 @@ go run ./cmd/cli
 
 The command prints uncompleted tasks from the configured Google task list and exits.
 
+For TickTick token setup, see [`docs/ticktick.md`](ticktick.md). For sync command usage, see [`docs/sync.md`](sync.md).
+
 ## Security
 
 Do not commit `.env`, access tokens, refresh tokens, client secrets, or copied OAuth responses.

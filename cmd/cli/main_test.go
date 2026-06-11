@@ -22,6 +22,64 @@ func TestPrintTasksPrintsEmptyState(t *testing.T) {
 	}
 }
 
+func TestPostSyncActionFromConfigDefaultsToComplete(t *testing.T) {
+	got, err := postSyncActionFromConfig("")
+	if err != nil {
+		t.Fatalf("post sync action from config: %v", err)
+	}
+	if got != googletasksync.PostSyncActionComplete {
+		t.Fatalf("unexpected action: %s", got)
+	}
+}
+
+func TestPostSyncActionFromConfigParsesDelete(t *testing.T) {
+	got, err := postSyncActionFromConfig("delete")
+	if err != nil {
+		t.Fatalf("post sync action from config: %v", err)
+	}
+	if got != googletasksync.PostSyncActionDelete {
+		t.Fatalf("unexpected action: %s", got)
+	}
+}
+
+func TestPostSyncActionFromConfigRejectsInvalidAction(t *testing.T) {
+	_, err := postSyncActionFromConfig("archive")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "GOOGLE_POST_SYNC_ACTION") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPrintSyncSummary(t *testing.T) {
+	var out bytes.Buffer
+
+	printSyncSummary(&out, googletasksync.SyncSummary{
+		Seen:      4,
+		Created:   3,
+		Skipped:   1,
+		Failed:    0,
+		Completed: 3,
+		Deleted:   0,
+	})
+
+	got := out.String()
+	for _, want := range []string{
+		"Sync summary:",
+		"Seen: 4",
+		"Created: 3",
+		"Skipped: 1",
+		"Failed: 0",
+		"Completed: 3",
+		"Deleted: 0",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("expected output to contain %q, got %q", want, got)
+		}
+	}
+}
+
 func TestPrintTasksPrintsTaskFields(t *testing.T) {
 	var out bytes.Buffer
 

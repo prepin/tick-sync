@@ -11,6 +11,9 @@ import (
 )
 
 type Config struct {
+	DBPath               string
+	GooglePostSyncAction string
+
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleAccessToken  string
@@ -18,25 +21,48 @@ type Config struct {
 	GoogleTokenType    string
 	GoogleTokenExpiry  time.Time
 	GoogleTaskListID   string
+
+	TickTickAccessToken string
+	TickTickAPIBaseURL  string
+	TickTickTimeZone    string
+	TickTickProjectID   string
 }
 
 func Load() (Config, error) {
 	_ = godotenv.Load()
 
 	cfg := Config{
-		GoogleClientID:     strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
-		GoogleClientSecret: strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET")),
-		GoogleAccessToken:  strings.TrimSpace(os.Getenv("GOOGLE_ACCESS_TOKEN")),
-		GoogleRefreshToken: strings.TrimSpace(os.Getenv("GOOGLE_REFRESH_TOKEN")),
-		GoogleTokenType:    strings.TrimSpace(os.Getenv("GOOGLE_TOKEN_TYPE")),
-		GoogleTaskListID:   strings.TrimSpace(os.Getenv("GOOGLE_TASKLIST_ID")),
+		DBPath:               strings.TrimSpace(os.Getenv("DB_PATH")),
+		GooglePostSyncAction: strings.TrimSpace(os.Getenv("GOOGLE_POST_SYNC_ACTION")),
+		GoogleClientID:       strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
+		GoogleClientSecret:   strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET")),
+		GoogleAccessToken:    strings.TrimSpace(os.Getenv("GOOGLE_ACCESS_TOKEN")),
+		GoogleRefreshToken:   strings.TrimSpace(os.Getenv("GOOGLE_REFRESH_TOKEN")),
+		GoogleTokenType:      strings.TrimSpace(os.Getenv("GOOGLE_TOKEN_TYPE")),
+		GoogleTaskListID:     strings.TrimSpace(os.Getenv("GOOGLE_TASKLIST_ID")),
+		TickTickAccessToken:  strings.TrimSpace(os.Getenv("TICKTICK_ACCESS_TOKEN")),
+		TickTickAPIBaseURL:   strings.TrimSpace(os.Getenv("TICKTICK_API_BASE_URL")),
+		TickTickTimeZone:     strings.TrimSpace(os.Getenv("TICKTICK_TIME_ZONE")),
+		TickTickProjectID:    strings.TrimSpace(os.Getenv("TICKTICK_PROJECT_ID")),
 	}
 
 	if cfg.GoogleTokenType == "" {
 		cfg.GoogleTokenType = "Bearer"
 	}
+	if cfg.DBPath == "" {
+		cfg.DBPath = "./tick-sync.db"
+	}
+	if cfg.GooglePostSyncAction == "" {
+		cfg.GooglePostSyncAction = "complete"
+	}
 	if cfg.GoogleTaskListID == "" {
 		cfg.GoogleTaskListID = "@default"
+	}
+	if cfg.TickTickAPIBaseURL == "" {
+		cfg.TickTickAPIBaseURL = "https://api.ticktick.com/open/v1"
+	}
+	if cfg.TickTickTimeZone == "" {
+		cfg.TickTickTimeZone = "UTC"
 	}
 
 	expiry, err := parseTokenExpiry(os.Getenv("GOOGLE_TOKEN_EXPIRY"))
