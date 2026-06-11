@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	googletasks "google.golang.org/api/tasks/v1"
+	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
 )
 
 func TestPrintTasksPrintsEmptyState(t *testing.T) {
@@ -25,9 +25,9 @@ func TestPrintTasksPrintsEmptyState(t *testing.T) {
 func TestPrintTasksPrintsTaskFields(t *testing.T) {
 	var out bytes.Buffer
 
-	printTasks(&out, "@default", []*googletasks.Task{
+	printTasks(&out, "@default", []googletasksync.GoogleTask{
 		{
-			Id:      "task-1",
+			ID:      "task-1",
 			Title:   "Buy milk",
 			Status:  "needsAction",
 			Due:     "2026-06-12T00:00:00.000Z",

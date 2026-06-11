@@ -6,6 +6,7 @@ type GoogleTask struct {
 	ID      string
 	Title   string
 	Notes   string
+	Status  string
 	Due     string
 	Updated string
 }

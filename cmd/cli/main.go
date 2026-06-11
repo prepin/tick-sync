@@ -10,7 +10,7 @@ import (
 
 	googleclient "github.com/prepin/tick-sync/internal/clients/google"
 	"github.com/prepin/tick-sync/internal/config"
-	googletasks "google.golang.org/api/tasks/v1"
+	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
 )
 
 func main() {
@@ -26,7 +26,7 @@ func main() {
 		log.Fatalf("create google tasks client: %v", err)
 	}
 
-	tasks, err := client.ListUncompletedTasks(ctx, cfg.GoogleTaskListID)
+	tasks, err := client.ListUncompleted(ctx)
 	if err != nil {
 		log.Fatalf("list google tasks: %v", err)
 	}
@@ -34,7 +34,7 @@ func main() {
 	printTasks(os.Stdout, cfg.GoogleTaskListID, tasks)
 }
 
-func printTasks(out io.Writer, taskListID string, tasks []*googletasks.Task) {
+func printTasks(out io.Writer, taskListID string, tasks []googletasksync.GoogleTask) {
 	fmt.Fprintf(out, "Google task list: %s\n", taskListID)
 
 	if len(tasks) == 0 {
@@ -44,7 +44,7 @@ func printTasks(out io.Writer, taskListID string, tasks []*googletasks.Task) {
 
 	for _, task := range tasks {
 		fmt.Fprintln(out)
-		fmt.Fprintf(out, "- id: %s\n", task.Id)
+		fmt.Fprintf(out, "- id: %s\n", task.ID)
 		fmt.Fprintf(out, "  title: %s\n", task.Title)
 		fmt.Fprintf(out, "  status: %s\n", task.Status)
 		fmt.Fprintf(out, "  due: %s\n", task.Due)
