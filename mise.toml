@@ -4,3 +4,7 @@ go = "1.26.4"
 [tasks.test]
 description = "Run all Go tests"
 run = "go test ./..."
+
+[tasks.generate]
+description = "Generate Go mocks"
+run = "go generate ./..."
