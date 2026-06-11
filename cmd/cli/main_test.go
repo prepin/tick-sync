@@ -155,7 +155,7 @@ func TestRunSyncCompletesSyncCycle(t *testing.T) {
 		TickTickAccessToken: "test-token",
 	}
 
-	if err := runSync(ctx, cfg, io.Discard); err != nil {
+	if err := runSync(ctx, cfg); err != nil {
 		t.Fatalf("run sync: %v", err)
 	}
 }
@@ -189,7 +189,7 @@ func TestRunSyncReturnsErrorOnTickTickAPIFailure(t *testing.T) {
 		TickTickAccessToken: "test-token",
 	}
 
-	err := runSync(ctx, cfg, io.Discard)
+	err := runSync(ctx, cfg)
 	if err == nil {
 		t.Fatal("expected error")
 	}

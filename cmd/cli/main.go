@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 
@@ -19,7 +19,8 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("load config: %v", err)
+		slog.Error("load config", "error", err)
+		os.Exit(1)
 	}
 
 	command := "list"
@@ -32,12 +33,13 @@ func main() {
 	case "list":
 		runErr = runList(ctx, cfg, os.Stdout)
 	case "sync":
-		runErr = runSync(ctx, cfg, os.Stdout)
+		runErr = runSync(ctx, cfg)
 	default:
 		runErr = fmt.Errorf("unknown command %q; expected list or sync", command)
 	}
 	if runErr != nil {
-		log.Fatal(runErr)
+		slog.Error(runErr.Error())
+		os.Exit(1)
 	}
 }
 
@@ -56,8 +58,8 @@ func runList(ctx context.Context, cfg config.Config, out io.Writer) error {
 	return nil
 }
 
-func runSync(ctx context.Context, cfg config.Config, out io.Writer) error {
-	runner, cleanup, err := service.NewSyncRunner(ctx, cfg, out)
+func runSync(ctx context.Context, cfg config.Config) error {
+	runner, cleanup, err := service.NewSyncRunner(ctx, cfg)
 	if err != nil {
 		return err
 	}

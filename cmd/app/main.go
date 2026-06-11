@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -22,21 +22,25 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("load config: %v", err)
+		slog.Error("load config", "error", err)
+		os.Exit(1)
 	}
 
-	runner, cleanup, err := service.NewSyncRunner(ctx, cfg, os.Stdout)
+	runner, cleanup, err := service.NewSyncRunner(ctx, cfg)
 	if err != nil {
-		log.Fatalf("create sync runner: %v", err)
+		slog.Error("create sync runner", "error", err)
+		os.Exit(1)
 	}
 	defer func() {
 		if err := cleanup(); err != nil {
-			log.Printf("cleanup failed: %v", err)
+			slog.Warn("cleanup failed", "error", err)
 		}
 	}()
 
-	log.Printf("sync service started; poll interval: %s", cfg.PollInterval)
-	runSync(ctx, runner)
+	slog.Info("sync service started", "poll_interval", cfg.PollInterval)
+	if err := runSync(ctx, runner); err != nil {
+		os.Exit(1)
+	}
 
 	ticker := time.NewTicker(cfg.PollInterval)
 	defer ticker.Stop()
@@ -44,7 +48,7 @@ func main() {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("shutdown requested")
+			slog.Info("shutdown requested")
 			return
 		case <-ticker.C:
 			runSync(ctx, runner)
@@ -52,11 +56,12 @@ func main() {
 	}
 }
 
-func runSync(ctx context.Context, runner syncRunner) {
-	log.Println("sync started")
+func runSync(ctx context.Context, runner syncRunner) error {
+	slog.Info("sync started")
 	if err := runner.RunOnce(ctx); err != nil {
-		log.Printf("sync finished with error: %v", err)
-		return
+		slog.Error("sync finished", "error", err)
+		return err
 	}
-	log.Println("sync finished")
+	slog.Info("sync finished")
+	return nil
 }

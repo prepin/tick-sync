@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -49,12 +50,12 @@ func TestPostSyncActionFromConfigRejectsInvalidAction(t *testing.T) {
 	}
 }
 
-// Prints all summary field values including zero counts.
-func TestPrintSyncSummaryPrintsFieldValues(t *testing.T) {
+// Logs a single summary line with all field values and INFO level when there are no errors.
+func TestPrintSyncSummaryLogsFieldValuesAtInfoLevel(t *testing.T) {
 	t.Parallel()
-	var out bytes.Buffer
+	buf := captureSlogOutput(t)
 
-	PrintSyncSummary(&out, googletasksync.SyncSummary{
+	PrintSyncSummary(googletasksync.SyncSummary{
 		Seen:      4,
 		Created:   3,
 		Skipped:   1,
@@ -63,28 +64,36 @@ func TestPrintSyncSummaryPrintsFieldValues(t *testing.T) {
 		Deleted:   0,
 	})
 
-	got := out.String()
-	for _, want := range []string{
-		"Sync summary:",
-		"Seen: 4",
-		"Created: 3",
-		"Skipped: 1",
-		"Failed: 0",
-		"Completed: 3",
-		"Deleted: 0",
-	} {
-		if !strings.Contains(got, want) {
-			t.Fatalf("expected output to contain %q, got %q", want, got)
-		}
+	got := buf.String()
+	if !strings.Contains(got, "level=INFO") {
+		t.Fatalf("expected info level log, got %q", got)
+	}
+	if !strings.Contains(got, `seen=4`) {
+		t.Fatalf("expected seen=4 in log, got %q", got)
+	}
+	if !strings.Contains(got, `created=3`) {
+		t.Fatalf("expected created=3 in log, got %q", got)
+	}
+	if !strings.Contains(got, `skipped=1`) {
+		t.Fatalf("expected skipped=1 in log, got %q", got)
+	}
+	if !strings.Contains(got, `failed=0`) {
+		t.Fatalf("expected failed=0 in log, got %q", got)
+	}
+	if !strings.Contains(got, `completed=3`) {
+		t.Fatalf("expected completed=3 in log, got %q", got)
+	}
+	if !strings.Contains(got, `deleted=0`) {
+		t.Fatalf("expected deleted=0 in log, got %q", got)
 	}
 }
 
-// Prints errors section with each non-nil error, skipping nil entries.
-func TestPrintSyncSummaryPrintsErrorsWhenPresent(t *testing.T) {
+// Logs the error level with an errors field containing non-nil error messages when the sync encountered failures.
+func TestPrintSyncSummaryLogsErrorsAtErrorLevel(t *testing.T) {
 	t.Parallel()
-	var out bytes.Buffer
+	buf := captureSlogOutput(t)
 
-	PrintSyncSummary(&out, googletasksync.SyncSummary{
+	PrintSyncSummary(googletasksync.SyncSummary{
 		Seen:      1,
 		Created:   0,
 		Skipped:   0,
@@ -94,18 +103,12 @@ func TestPrintSyncSummaryPrintsErrorsWhenPresent(t *testing.T) {
 		Errors:    []error{errors.New("ticktick unavailable"), nil, errors.New("db write failed")},
 	})
 
-	got := out.String()
-	if !strings.Contains(got, "Errors:") {
-		t.Fatalf("expected output to contain Errors header, got %q", got)
+	got := buf.String()
+	if !strings.Contains(got, "level=ERROR") {
+		t.Fatalf("expected error level log, got %q", got)
 	}
-	if !strings.Contains(got, "- ticktick unavailable") {
-		t.Fatalf("expected first error in output, got %q", got)
-	}
-	if !strings.Contains(got, "- db write failed") {
-		t.Fatalf("expected second error in output, got %q", got)
-	}
-	if strings.Contains(got, "<nil>") {
-		t.Fatalf("did not expect nil error in output, got %q", got)
+	if !strings.Contains(got, `errors="ticktick unavailable, db write failed"`) {
+		t.Fatalf("expected errors in log, got %q", got)
 	}
 }
 
@@ -116,7 +119,7 @@ func TestNewSyncRunnerRejectsInvalidPostSyncAction(t *testing.T) {
 		GooglePostSyncAction: "archive",
 	}
 
-	_, _, err := NewSyncRunner(ctx, cfg, nil)
+	_, _, err := NewSyncRunner(ctx, cfg)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -134,7 +137,7 @@ func TestNewSyncRunnerRejectsDBOpenFailure(t *testing.T) {
 		TickTickAccessToken: "test-token",
 	}
 
-	_, _, err := NewSyncRunner(ctx, cfg, nil)
+	_, _, err := NewSyncRunner(ctx, cfg)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -153,7 +156,7 @@ func TestNewSyncRunnerRejectsMissingTickTickAccessToken(t *testing.T) {
 		TickTickAccessToken: "",
 	}
 
-	_, _, err := NewSyncRunner(ctx, cfg, nil)
+	_, _, err := NewSyncRunner(ctx, cfg)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -162,8 +165,8 @@ func TestNewSyncRunnerRejectsMissingTickTickAccessToken(t *testing.T) {
 	}
 }
 
-// Syncs a single Google Task to TickTick, completes the source task, and prints the summary.
-func TestRunOnceSyncsTaskAndPrintsSummary(t *testing.T) {
+// Syncs a single Google Task to TickTick, completes the source task, and logs the summary.
+func TestRunOnceSyncsTaskAndLogsSummary(t *testing.T) {
 	ctx := context.Background()
 	googleServer, ticktickServer := startMockServers(t)
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
@@ -176,8 +179,8 @@ func TestRunOnceSyncsTaskAndPrintsSummary(t *testing.T) {
 		TickTickAccessToken: "test-token",
 	}
 
-	var out bytes.Buffer
-	runner, cleanup, err := NewSyncRunner(ctx, cfg, &out)
+	buf := captureSlogOutput(t)
+	runner, cleanup, err := NewSyncRunner(ctx, cfg)
 	if err != nil {
 		t.Fatalf("new sync runner: %v", err)
 	}
@@ -187,15 +190,15 @@ func TestRunOnceSyncsTaskAndPrintsSummary(t *testing.T) {
 		t.Fatalf("run once: %v", err)
 	}
 
-	got := out.String()
-	if !strings.Contains(got, "Seen: 1") {
-		t.Fatalf("expected Seen: 1 in summary, got %q", got)
+	got := buf.String()
+	if !strings.Contains(got, `seen=1`) {
+		t.Fatalf("expected seen=1 in summary, got %q", got)
 	}
-	if !strings.Contains(got, "Created: 1") {
-		t.Fatalf("expected Created: 1 in summary, got %q", got)
+	if !strings.Contains(got, `created=1`) {
+		t.Fatalf("expected created=1 in summary, got %q", got)
 	}
-	if !strings.Contains(got, "Completed: 1") {
-		t.Fatalf("expected Completed: 1 in summary, got %q", got)
+	if !strings.Contains(got, `completed=1`) {
+		t.Fatalf("expected completed=1 in summary, got %q", got)
 	}
 }
 
@@ -229,8 +232,8 @@ func TestRunOnceReportsSyncError(t *testing.T) {
 		TickTickAccessToken: "test-token",
 	}
 
-	var out bytes.Buffer
-	runner, cleanup, err := NewSyncRunner(ctx, cfg, &out)
+	buf := captureSlogOutput(t)
+	runner, cleanup, err := NewSyncRunner(ctx, cfg)
 	if err != nil {
 		t.Fatalf("new sync runner: %v", err)
 	}
@@ -242,6 +245,9 @@ func TestRunOnceReportsSyncError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "sync google tasks to ticktick") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "level=ERROR") {
+		t.Fatalf("expected error level log, got %q", buf.String())
 	}
 }
 
@@ -278,4 +284,16 @@ func startMockServers(t *testing.T) (googleServer, ticktickServer *httptest.Serv
 	t.Cleanup(ticktickServer.Close)
 
 	return googleServer, ticktickServer
+}
+
+func captureSlogOutput(t *testing.T) *bytes.Buffer {
+	t.Helper()
+
+	var buf bytes.Buffer
+	handler := slog.NewTextHandler(&buf, nil)
+	prev := slog.Default()
+	slog.SetDefault(slog.New(handler))
+	t.Cleanup(func() { slog.SetDefault(prev) })
+
+	return &buf
 }

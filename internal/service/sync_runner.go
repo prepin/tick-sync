@@ -4,7 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io"
+	"log/slog"
 	"strings"
 
 	googleclient "github.com/prepin/tick-sync/internal/clients/google"
@@ -17,10 +17,9 @@ import (
 
 type SyncRunner struct {
 	usecase *googletasksync.Usecase
-	out     io.Writer
 }
 
-func NewSyncRunner(ctx context.Context, cfg config.Config, out io.Writer) (*SyncRunner, func() error, error) {
+func NewSyncRunner(ctx context.Context, cfg config.Config) (*SyncRunner, func() error, error) {
 	postSyncAction, err := PostSyncActionFromConfig(cfg.GooglePostSyncAction)
 	if err != nil {
 		return nil, nil, err
@@ -54,7 +53,6 @@ func NewSyncRunner(ctx context.Context, cfg config.Config, out io.Writer) (*Sync
 
 	runner := &SyncRunner{
 		usecase: googletasksync.New(google, ticktick, store, postSyncAction),
-		out:     out,
 	}
 
 	return runner, cleanup, nil
@@ -62,7 +60,7 @@ func NewSyncRunner(ctx context.Context, cfg config.Config, out io.Writer) (*Sync
 
 func (r *SyncRunner) RunOnce(ctx context.Context) error {
 	summary, syncErr := r.usecase.SyncGoogleTasksToTickTick(ctx)
-	PrintSyncSummary(r.out, summary)
+	PrintSyncSummary(summary)
 	if syncErr != nil {
 		return fmt.Errorf("sync google tasks to ticktick: %w", syncErr)
 	}
@@ -81,24 +79,31 @@ func PostSyncActionFromConfig(value string) (googletasksync.PostSyncAction, erro
 	}
 }
 
-func PrintSyncSummary(out io.Writer, summary googletasksync.SyncSummary) {
-	fmt.Fprintln(out, "Sync summary:")
-	fmt.Fprintf(out, "Seen: %d\n", summary.Seen)
-	fmt.Fprintf(out, "Created: %d\n", summary.Created)
-	fmt.Fprintf(out, "Skipped: %d\n", summary.Skipped)
-	fmt.Fprintf(out, "Failed: %d\n", summary.Failed)
-	fmt.Fprintf(out, "Completed: %d\n", summary.Completed)
-	fmt.Fprintf(out, "Deleted: %d\n", summary.Deleted)
-
-	if len(summary.Errors) == 0 {
-		return
+func PrintSyncSummary(summary googletasksync.SyncSummary) {
+	attrs := []slog.Attr{
+		slog.Int("seen", summary.Seen),
+		slog.Int("created", summary.Created),
+		slog.Int("skipped", summary.Skipped),
+		slog.Int("failed", summary.Failed),
+		slog.Int("completed", summary.Completed),
+		slog.Int("deleted", summary.Deleted),
 	}
 
-	fmt.Fprintln(out, "Errors:")
-	for _, err := range summary.Errors {
-		if err == nil {
-			continue
+	if len(summary.Errors) > 0 {
+		nonNil := make([]string, 0, len(summary.Errors))
+		for _, err := range summary.Errors {
+			if err != nil {
+				nonNil = append(nonNil, err.Error())
+			}
 		}
-		fmt.Fprintf(out, "- %v\n", err)
+		if len(nonNil) > 0 {
+			attrs = append(attrs, slog.String("errors", strings.Join(nonNil, ", ")))
+		}
+	}
+
+	if summary.Failed > 0 || len(summary.Errors) > 0 {
+		slog.LogAttrs(context.Background(), slog.LevelError, "sync summary", attrs...)
+	} else {
+		slog.LogAttrs(context.Background(), slog.LevelInfo, "sync summary", attrs...)
 	}
 }
