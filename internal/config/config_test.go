@@ -30,6 +30,9 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	if cfg.GooglePostSyncAction != "complete" {
 		t.Fatalf("unexpected post sync action: %s", cfg.GooglePostSyncAction)
 	}
+	if cfg.PollInterval != 5*time.Minute {
+		t.Fatalf("unexpected poll interval: %s", cfg.PollInterval)
+	}
 	if cfg.GoogleTokenType != "Bearer" {
 		t.Fatalf("unexpected google token type: %s", cfg.GoogleTokenType)
 	}
@@ -96,6 +99,42 @@ func TestParseTokenExpiryDefaultsToExpiredTime(t *testing.T) {
 
 	if !expiry.Before(time.Now()) {
 		t.Fatalf("expected default expiry to be in the past, got %s", expiry)
+	}
+}
+
+func TestParsePollIntervalDefaultsToFiveMinutes(t *testing.T) {
+	interval, err := parsePollInterval("")
+	if err != nil {
+		t.Fatalf("parse poll interval: %v", err)
+	}
+	if interval != 5*time.Minute {
+		t.Fatalf("unexpected interval: %s", interval)
+	}
+}
+
+func TestParsePollIntervalParsesDuration(t *testing.T) {
+	interval, err := parsePollInterval("30s")
+	if err != nil {
+		t.Fatalf("parse poll interval: %v", err)
+	}
+	if interval != 30*time.Second {
+		t.Fatalf("unexpected interval: %s", interval)
+	}
+}
+
+func TestParsePollIntervalRejectsInvalidDuration(t *testing.T) {
+	_, err := parsePollInterval("soon")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestParsePollIntervalRejectsNonPositiveDuration(t *testing.T) {
+	for _, value := range []string{"0s", "-1m"} {
+		_, err := parsePollInterval(value)
+		if err == nil {
+			t.Fatalf("expected error for %q", value)
+		}
 	}
 }
 

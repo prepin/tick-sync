@@ -13,6 +13,7 @@ import (
 type Config struct {
 	DBPath               string
 	GooglePostSyncAction string
+	PollInterval         time.Duration
 
 	GoogleClientID     string
 	GoogleClientSecret string
@@ -55,6 +56,11 @@ func Load() (Config, error) {
 	if cfg.GooglePostSyncAction == "" {
 		cfg.GooglePostSyncAction = "complete"
 	}
+	pollInterval, err := parsePollInterval(os.Getenv("POLL_INTERVAL"))
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.PollInterval = pollInterval
 	if cfg.GoogleTaskListID == "" {
 		cfg.GoogleTaskListID = "@default"
 	}
@@ -110,4 +116,21 @@ func parseTokenExpiry(value string) (time.Time, error) {
 	}
 
 	return expiry, nil
+}
+
+func parsePollInterval(value string) (time.Duration, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 5 * time.Minute, nil
+	}
+
+	interval, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("POLL_INTERVAL must be a valid duration, for example 5m: %w", err)
+	}
+	if interval <= 0 {
+		return 0, errors.New("POLL_INTERVAL must be greater than zero")
+	}
+
+	return interval, nil
 }
