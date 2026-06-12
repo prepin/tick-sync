@@ -13,6 +13,7 @@ import (
 	googletasks "google.golang.org/api/tasks/v1"
 )
 
+// Maps the Google Tasks API response into domain tasks with all expected fields.
 func TestListUncompletedMapsGoogleTasksFromAPI(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -67,6 +68,7 @@ func TestListUncompletedMapsGoogleTasksFromAPI(t *testing.T) {
 	}
 }
 
+// Patches the Google Task status to "completed" via the Tasks API.
 func TestCompletePatchesGoogleTaskStatus(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -98,6 +100,7 @@ func TestCompletePatchesGoogleTaskStatus(t *testing.T) {
 	}
 }
 
+// Sends a DELETE request to the Tasks API for the specified task.
 func TestDeleteDeletesGoogleTask(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -169,7 +172,7 @@ func TestListUncompletedCollectsTasksAcrossPages(t *testing.T) {
 	}
 }
 
-// Returns an error when the API responds with a non-2xx status code.
+// Does not return any tasks when the API responds with a non-2xx status code.
 func TestListUncompletedReturnsErrorOnNon2xxResponse(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -185,6 +188,7 @@ func TestListUncompletedReturnsErrorOnNon2xxResponse(t *testing.T) {
 	}
 }
 
+// Maps a non-nil Google Tasks API task into a domain GoogleTask with all fields populated.
 func TestMapTaskMapsGoogleTaskFields(t *testing.T) {
 	t.Parallel()
 	task := &googletasks.Task{
@@ -211,7 +215,8 @@ func TestMapTaskMapsGoogleTaskFields(t *testing.T) {
 	}
 }
 
-func TestMapTaskHandlesNilTask(t *testing.T) {
+// Returns an empty GoogleTask struct when a nil API task is provided.
+func TestMapTaskReturnsEmptyTaskForNilInput(t *testing.T) {
 	t.Parallel()
 	got := mapTask(nil)
 	if got != (googletasksync.GoogleTask{}) {

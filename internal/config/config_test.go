@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Loads config with all defaults applied when environment variables are empty.
 func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	t.Setenv("DB_PATH", "")
 	t.Setenv("GOOGLE_POST_SYNC_ACTION", "")
@@ -47,6 +48,7 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	}
 }
 
+// Fails validation when any of the required Google OAuth environment variables are missing.
 func TestValidateRequiresGoogleOAuthValues(t *testing.T) {
 	cfg := Config{}
 
@@ -67,6 +69,7 @@ func TestValidateRequiresGoogleOAuthValues(t *testing.T) {
 	}
 }
 
+// Passes validation when only Google OAuth credentials (no access token) are provided.
 func TestValidateAllowsRefreshTokenOnly(t *testing.T) {
 	cfg := Config{
 		GoogleClientID:     "client-id",
@@ -79,7 +82,8 @@ func TestValidateAllowsRefreshTokenOnly(t *testing.T) {
 	}
 }
 
-func TestValidateDoesNotRequireTickTickCredentialsYet(t *testing.T) {
+// Passes validation with only Google OAuth credentials, without requiring TickTick values.
+func TestValidateDoesNotRequireTickTickCredentials(t *testing.T) {
 	cfg := Config{
 		GoogleClientID:     "client-id",
 		GoogleClientSecret: "client-secret",
@@ -91,6 +95,7 @@ func TestValidateDoesNotRequireTickTickCredentialsYet(t *testing.T) {
 	}
 }
 
+// Returns a time in the past as the default token expiry when no value is configured.
 func TestParseTokenExpiryDefaultsToExpiredTime(t *testing.T) {
 	expiry, err := parseTokenExpiry("")
 	if err != nil {
@@ -102,42 +107,7 @@ func TestParseTokenExpiryDefaultsToExpiredTime(t *testing.T) {
 	}
 }
 
-func TestParsePollIntervalDefaultsToFiveMinutes(t *testing.T) {
-	interval, err := parsePollInterval("")
-	if err != nil {
-		t.Fatalf("parse poll interval: %v", err)
-	}
-	if interval != 5*time.Minute {
-		t.Fatalf("unexpected interval: %s", interval)
-	}
-}
-
-func TestParsePollIntervalParsesDuration(t *testing.T) {
-	interval, err := parsePollInterval("30s")
-	if err != nil {
-		t.Fatalf("parse poll interval: %v", err)
-	}
-	if interval != 30*time.Second {
-		t.Fatalf("unexpected interval: %s", interval)
-	}
-}
-
-func TestParsePollIntervalRejectsInvalidDuration(t *testing.T) {
-	_, err := parsePollInterval("soon")
-	if err == nil {
-		t.Fatal("expected error")
-	}
-}
-
-func TestParsePollIntervalRejectsNonPositiveDuration(t *testing.T) {
-	for _, value := range []string{"0s", "-1m"} {
-		_, err := parsePollInterval(value)
-		if err == nil {
-			t.Fatalf("expected error for %q", value)
-		}
-	}
-}
-
+// Parses a valid RFC3339 timestamp into the token expiry.
 func TestParseTokenExpiryParsesRFC3339(t *testing.T) {
 	expiry, err := parseTokenExpiry("2026-06-10T12:00:00Z")
 	if err != nil {
@@ -149,9 +119,50 @@ func TestParseTokenExpiryParsesRFC3339(t *testing.T) {
 	}
 }
 
-func TestParseTokenExpiryRejectsInvalidValue(t *testing.T) {
+// Reports an error when the token expiry value is not a valid RFC3339 timestamp.
+func TestParseTokenExpiryReportsErrorForInvalidValue(t *testing.T) {
 	_, err := parseTokenExpiry("not-a-date")
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+// Returns five minutes as the default poll interval when no value is configured.
+func TestParsePollIntervalDefaultsToFiveMinutes(t *testing.T) {
+	interval, err := parsePollInterval("")
+	if err != nil {
+		t.Fatalf("parse poll interval: %v", err)
+	}
+	if interval != 5*time.Minute {
+		t.Fatalf("unexpected interval: %s", interval)
+	}
+}
+
+// Parses a valid duration string into the configured poll interval.
+func TestParsePollIntervalParsesDuration(t *testing.T) {
+	interval, err := parsePollInterval("30s")
+	if err != nil {
+		t.Fatalf("parse poll interval: %v", err)
+	}
+	if interval != 30*time.Second {
+		t.Fatalf("unexpected interval: %s", interval)
+	}
+}
+
+// Reports an error when the poll interval string is not a valid duration.
+func TestParsePollIntervalReportsErrorForInvalidDurationString(t *testing.T) {
+	_, err := parsePollInterval("soon")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+// Reports an error when the poll interval is zero or negative.
+func TestParsePollIntervalReportsErrorForNonPositiveDuration(t *testing.T) {
+	for _, value := range []string{"0s", "-1m"} {
+		_, err := parsePollInterval(value)
+		if err == nil {
+			t.Fatalf("expected error for %q", value)
+		}
 	}
 }

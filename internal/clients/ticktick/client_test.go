@@ -13,6 +13,44 @@ import (
 	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
 )
 
+// Does not create a client when the TickTick access token is not provided.
+func TestNewRequiresAccessToken(t *testing.T) {
+	t.Parallel()
+	_, err := New(config.Config{TickTickAPIBaseURL: "https://example.com"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+// Applies default API base URL and time zone when the config values are empty.
+func TestNewAppliesDefaults(t *testing.T) {
+	t.Parallel()
+	client, err := New(config.Config{TickTickAccessToken: "ticktick-token"})
+	if err != nil {
+		t.Fatalf("new ticktick client: %v", err)
+	}
+
+	if client.baseURL.String() != defaultAPIBaseURL+"/" {
+		t.Fatalf("unexpected base url: %s", client.baseURL.String())
+	}
+	if client.timeZone != defaultTimeZone {
+		t.Fatalf("unexpected timezone: %s", client.timeZone)
+	}
+}
+
+// Does not create a client when the API base URL is a relative path instead of absolute.
+func TestNewRejectsRelativeBaseURL(t *testing.T) {
+	t.Parallel()
+	_, err := New(config.Config{
+		TickTickAccessToken: "ticktick-token",
+		TickTickAPIBaseURL:  "/open/v1",
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+// Posts a task to TickTick without a projectId and returns the created task ID.
 func TestCreateInboxTaskPostsTaskWithoutProjectID(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -63,6 +101,7 @@ func TestCreateInboxTaskPostsTaskWithoutProjectID(t *testing.T) {
 	}
 }
 
+// Includes the projectId field in the request body when the client is configured with a project ID.
 func TestCreateInboxTaskIncludesProjectIDWhenConfigured(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -82,6 +121,7 @@ func TestCreateInboxTaskIncludesProjectIDWhenConfigured(t *testing.T) {
 	}
 }
 
+// Omits the dueDate and isAllDay fields when the task input has no due date.
 func TestCreateInboxTaskOmitsDueDateWhenMissing(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -106,6 +146,7 @@ func TestCreateInboxTaskOmitsDueDateWhenMissing(t *testing.T) {
 	}
 }
 
+// Does not create an inbox task when the TickTick API responds with a 4xx error and body.
 func TestCreateInboxTaskReturnsNon2xxErrorWithBody(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -124,6 +165,7 @@ func TestCreateInboxTaskReturnsNon2xxErrorWithBody(t *testing.T) {
 	}
 }
 
+// Does not create an inbox task when the API response body is not valid JSON.
 func TestCreateInboxTaskReturnsInvalidJSONError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -142,6 +184,7 @@ func TestCreateInboxTaskReturnsInvalidJSONError(t *testing.T) {
 	}
 }
 
+// Does not create an inbox task when the API response is missing the task ID.
 func TestCreateInboxTaskReturnsMissingIDError(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -160,6 +203,7 @@ func TestCreateInboxTaskReturnsMissingIDError(t *testing.T) {
 	}
 }
 
+// Does not create an inbox task when the due date string cannot be parsed.
 func TestCreateInboxTaskReturnsInvalidDueDateError(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(t, "https://example.com", "")
@@ -175,40 +219,7 @@ func TestCreateInboxTaskReturnsInvalidDueDateError(t *testing.T) {
 	}
 }
 
-func TestNewRequiresAccessToken(t *testing.T) {
-	t.Parallel()
-	_, err := New(config.Config{TickTickAPIBaseURL: "https://example.com"})
-	if err == nil {
-		t.Fatal("expected error")
-	}
-}
-
-func TestNewAppliesDefaults(t *testing.T) {
-	t.Parallel()
-	client, err := New(config.Config{TickTickAccessToken: "ticktick-token"})
-	if err != nil {
-		t.Fatalf("new ticktick client: %v", err)
-	}
-
-	if client.baseURL.String() != defaultAPIBaseURL+"/" {
-		t.Fatalf("unexpected base url: %s", client.baseURL.String())
-	}
-	if client.timeZone != defaultTimeZone {
-		t.Fatalf("unexpected timezone: %s", client.timeZone)
-	}
-}
-
-func TestNewRejectsRelativeBaseURL(t *testing.T) {
-	t.Parallel()
-	_, err := New(config.Config{
-		TickTickAccessToken: "ticktick-token",
-		TickTickAPIBaseURL:  "/open/v1",
-	})
-	if err == nil {
-		t.Fatal("expected error")
-	}
-}
-
+// Converts an RFC3339Nano due date string into the TickTick API date format with UTC timezone suffix.
 func TestFormatDueDate(t *testing.T) {
 	t.Parallel()
 	got, ok, err := formatDueDate("2026-06-12T00:00:00.000Z")
@@ -223,7 +234,7 @@ func TestFormatDueDate(t *testing.T) {
 	}
 }
 
-// readErrorBody returns a fallback message when the response body cannot be read.
+// Returns a fallback error message string when the HTTP error response body cannot be read.
 func TestReadErrorBodyReturnsFallbackMessageWhenReadFails(t *testing.T) {
 	t.Parallel()
 	got := readErrorBody(&faultyReader{})

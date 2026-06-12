@@ -12,7 +12,9 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// Creates the synced_google_tasks table in the database.
 func TestNewGoogleTasksStoreCreatesTable(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t)
 
@@ -34,7 +36,36 @@ WHERE type = 'table' AND name = 'synced_google_tasks';`).Scan(&tableName)
 	}
 }
 
+// Does not create a store when the database handle is nil.
+func TestNewGoogleTasksStoreRejectsNilDB(t *testing.T) {
+	t.Parallel()
+	_, err := NewGoogleTasksStore(context.Background(), nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+// Does not create a store when the database is closed and table creation fails.
+func TestNewGoogleTasksStoreReturnsErrorWhenTableCreationFails(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	db := openTestDB(t)
+	if err := db.Close(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+
+	_, err := NewGoogleTasksStore(ctx, db)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "create synced_google_tasks table") {
+		t.Fatalf("expected error about table creation, got %v", err)
+	}
+}
+
+// Returns false for a Google Task ID that has never been stored.
 func TestGoogleTasksStoreIsProcessedReturnsFalseForUnknownTask(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	store := newTestStore(t, ctx)
 
@@ -47,7 +78,27 @@ func TestGoogleTasksStoreIsProcessedReturnsFalseForUnknownTask(t *testing.T) {
 	}
 }
 
+// Reports an error when IsProcessed cannot query the database.
+func TestGoogleTasksStoreIsProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	store := newTestStore(t, ctx)
+	if err := store.db.Close(); err != nil {
+		t.Fatalf("close db: %v", err)
+	}
+
+	processed, err := store.IsProcessed(ctx, "google-1")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if processed {
+		t.Fatal("expected task to be unprocessed")
+	}
+}
+
+// Records a synced task and returns true for subsequent IsProcessed checks.
 func TestGoogleTasksStoreMarkProcessedRecordsTask(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	store := newTestStore(t, ctx)
 
@@ -64,7 +115,9 @@ func TestGoogleTasksStoreMarkProcessedRecordsTask(t *testing.T) {
 	}
 }
 
+// Stores all record fields (updated, title, ticktick ID, action, synced at) in the database.
 func TestGoogleTasksStoreMarkProcessedStoresRecordFields(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t)
 	store, err := NewGoogleTasksStore(ctx, db)
@@ -107,7 +160,9 @@ WHERE google_task_id = ?;`, record.GoogleTaskID).Scan(
 	}
 }
 
+// Does not insert duplicate rows when the same record is marked processed twice.
 func TestGoogleTasksStoreMarkProcessedIsIdempotent(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t)
 	store, err := NewGoogleTasksStore(ctx, db)
@@ -132,49 +187,9 @@ func TestGoogleTasksStoreMarkProcessedIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestNewGoogleTasksStoreRejectsNilDB(t *testing.T) {
-	_, err := NewGoogleTasksStore(context.Background(), nil)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-}
-
-// NewGoogleTasksStore fails when table creation cannot execute on a closed database.
-func TestNewGoogleTasksStoreReturnsErrorWhenTableCreationFails(t *testing.T) {
-	ctx := context.Background()
-	db := openTestDB(t)
-	if err := db.Close(); err != nil {
-		t.Fatalf("close db: %v", err)
-	}
-
-	_, err := NewGoogleTasksStore(ctx, db)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !strings.Contains(err.Error(), "create synced_google_tasks table") {
-		t.Fatalf("expected error about table creation, got %v", err)
-	}
-}
-
-// IsProcessed returns an error when the database is no longer available.
-func TestGoogleTasksStoreIsProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
-	ctx := context.Background()
-	store := newTestStore(t, ctx)
-	if err := store.db.Close(); err != nil {
-		t.Fatalf("close db: %v", err)
-	}
-
-	processed, err := store.IsProcessed(ctx, "google-1")
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if processed {
-		t.Fatal("expected task to be unprocessed")
-	}
-}
-
-// MarkProcessed returns an error when the database is no longer available.
+// Reports an error when MarkProcessed cannot write to the database.
 func TestGoogleTasksStoreMarkProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	store := newTestStore(t, ctx)
 	if err := store.db.Close(); err != nil {
@@ -190,8 +205,9 @@ func TestGoogleTasksStoreMarkProcessedReturnsErrorWhenDatabaseIsClosed(t *testin
 	}
 }
 
-// formatTime produces RFC3339Nano output in UTC regardless of input timezone.
+// Converts a time value to RFC3339Nano format in UTC regardless of the input timezone.
 func TestFormatTimeReturnsRFC3339NanoUTC(t *testing.T) {
+	t.Parallel()
 	input := time.Date(2026, 6, 10, 12, 0, 0, 123, time.FixedZone("EST", -5*60*60))
 	got := formatTime(input)
 	if got != "2026-06-10T17:00:00.000000123Z" {

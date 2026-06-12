@@ -11,6 +11,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+// Syncs a single unprocessed Google Task to TickTick, marks it as processed, and completes it on Google.
 func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
@@ -63,6 +64,7 @@ func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault
 	assertSummary(t, summary, want)
 }
 
+// Does not delete the Google task and calls Complete instead when the post-sync action is not delete.
 func TestUsecaseSyncGoogleTasksToTickTickDeletesTaskWhenConfigured(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
@@ -88,6 +90,7 @@ func TestUsecaseSyncGoogleTasksToTickTickDeletesTaskWhenConfigured(t *testing.T)
 	assertSummary(t, summary, want)
 }
 
+// Skips a task that was already synced in a previous run and does not create a TickTick task for it.
 func TestUsecaseSyncGoogleTasksToTickTickSkipsAlreadyProcessedTask(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
@@ -108,6 +111,7 @@ func TestUsecaseSyncGoogleTasksToTickTickSkipsAlreadyProcessedTask(t *testing.T)
 	assertSummary(t, summary, want)
 }
 
+// Does not mark a task as processed or complete it on Google when the TickTick API call fails.
 func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenTickTickCreationFails(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
@@ -130,6 +134,7 @@ func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenTickTickCreation
 	assertSummary(t, summary, want)
 }
 
+// Does not complete the Google task when the processed record cannot be saved to the store.
 func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenStoreRecordFails(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
@@ -153,6 +158,7 @@ func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenStoreRecordFails
 	assertSummary(t, summary, want)
 }
 
+// Continues syncing remaining tasks after a per-task error, reporting both successes and the failure in the summary.
 func TestUsecaseSyncGoogleTasksToTickTickContinuesAfterPerTaskError(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
@@ -187,6 +193,7 @@ func TestUsecaseSyncGoogleTasksToTickTickContinuesAfterPerTaskError(t *testing.T
 	assertSummary(t, summary, want)
 }
 
+// Returns an empty summary and an error when the Google Tasks API itself is unavailable.
 func TestUsecaseSyncGoogleTasksToTickTickReturnsListError(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)
@@ -206,6 +213,7 @@ func TestUsecaseSyncGoogleTasksToTickTickReturnsListError(t *testing.T) {
 	assertSummary(t, summary, googletasksync.SyncSummary{})
 }
 
+// assertSummary checks that the SyncSummary fields match expected values, ignoring the order of errors.
 func assertSummary(t *testing.T, got googletasksync.SyncSummary, want googletasksync.SyncSummary) {
 	t.Helper()
 

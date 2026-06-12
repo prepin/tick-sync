@@ -17,99 +17,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func TestPostSyncActionFromConfigDefaultsToComplete(t *testing.T) {
-	t.Parallel()
-	got, err := PostSyncActionFromConfig("")
-	if err != nil {
-		t.Fatalf("post sync action from config: %v", err)
-	}
-	if got != googletasksync.PostSyncActionComplete {
-		t.Fatalf("unexpected action: %s", got)
-	}
-}
-
-func TestPostSyncActionFromConfigParsesDelete(t *testing.T) {
-	t.Parallel()
-	got, err := PostSyncActionFromConfig("delete")
-	if err != nil {
-		t.Fatalf("post sync action from config: %v", err)
-	}
-	if got != googletasksync.PostSyncActionDelete {
-		t.Fatalf("unexpected action: %s", got)
-	}
-}
-
-func TestPostSyncActionFromConfigRejectsInvalidAction(t *testing.T) {
-	t.Parallel()
-	_, err := PostSyncActionFromConfig("archive")
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !strings.Contains(err.Error(), "GOOGLE_POST_SYNC_ACTION") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
-
-// Logs a single summary line with all field values and INFO level when there are no errors.
-func TestPrintSyncSummaryLogsFieldValuesAtInfoLevel(t *testing.T) {
-	buf := captureSlogOutput(t)
-
-	PrintSyncSummary(googletasksync.SyncSummary{
-		Seen:      4,
-		Created:   3,
-		Skipped:   1,
-		Failed:    0,
-		Completed: 3,
-		Deleted:   0,
-	})
-
-	got := buf.String()
-	if !strings.Contains(got, "level=INFO") {
-		t.Fatalf("expected info level log, got %q", got)
-	}
-	if !strings.Contains(got, `seen=4`) {
-		t.Fatalf("expected seen=4 in log, got %q", got)
-	}
-	if !strings.Contains(got, `created=3`) {
-		t.Fatalf("expected created=3 in log, got %q", got)
-	}
-	if !strings.Contains(got, `skipped=1`) {
-		t.Fatalf("expected skipped=1 in log, got %q", got)
-	}
-	if !strings.Contains(got, `failed=0`) {
-		t.Fatalf("expected failed=0 in log, got %q", got)
-	}
-	if !strings.Contains(got, `completed=3`) {
-		t.Fatalf("expected completed=3 in log, got %q", got)
-	}
-	if !strings.Contains(got, `deleted=0`) {
-		t.Fatalf("expected deleted=0 in log, got %q", got)
-	}
-}
-
-// Logs the error level with an errors field containing non-nil error messages when the sync encountered failures.
-func TestPrintSyncSummaryLogsErrorsAtErrorLevel(t *testing.T) {
-	buf := captureSlogOutput(t)
-
-	PrintSyncSummary(googletasksync.SyncSummary{
-		Seen:      1,
-		Created:   0,
-		Skipped:   0,
-		Failed:    1,
-		Completed: 0,
-		Deleted:   0,
-		Errors:    []error{errors.New("ticktick unavailable"), nil, errors.New("db write failed")},
-	})
-
-	got := buf.String()
-	if !strings.Contains(got, "level=ERROR") {
-		t.Fatalf("expected error level log, got %q", got)
-	}
-	if !strings.Contains(got, `errors="ticktick unavailable, db write failed"`) {
-		t.Fatalf("expected errors in log, got %q", got)
-	}
-}
-
 // Does not create a runner when the configured post-sync action is invalid.
 func TestNewSyncRunnerRejectsInvalidPostSyncAction(t *testing.T) {
 	ctx := context.Background()
@@ -205,13 +112,11 @@ func TestRunOnceReportsSyncError(t *testing.T) {
 	ctx := context.Background()
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 
-	// A TickTick server that always returns an error to trigger usecase failure.
 	ticktickServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "unavailable", http.StatusServiceUnavailable)
 	}))
 	t.Cleanup(ticktickServer.Close)
 
-	// Google server that returns a task so the usecase tries to create in TickTick.
 	googleServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
@@ -249,8 +154,104 @@ func TestRunOnceReportsSyncError(t *testing.T) {
 	}
 }
 
-// startMockServers creates httptest servers for Google Tasks and TickTick APIs
-// that respond to a simple one-task sync scenario.
+// Returns "complete" as the default post-sync action when the config value is empty.
+func TestPostSyncActionFromConfigDefaultsToComplete(t *testing.T) {
+	t.Parallel()
+	got, err := PostSyncActionFromConfig("")
+	if err != nil {
+		t.Fatalf("post sync action from config: %v", err)
+	}
+	if got != googletasksync.PostSyncActionComplete {
+		t.Fatalf("unexpected action: %s", got)
+	}
+}
+
+// Returns "delete" as the post-sync action when configured.
+func TestPostSyncActionFromConfigParsesDelete(t *testing.T) {
+	t.Parallel()
+	got, err := PostSyncActionFromConfig("delete")
+	if err != nil {
+		t.Fatalf("post sync action from config: %v", err)
+	}
+	if got != googletasksync.PostSyncActionDelete {
+		t.Fatalf("unexpected action: %s", got)
+	}
+}
+
+// Reports an error when the post-sync action value is not "complete" or "delete".
+func TestPostSyncActionFromConfigReportsErrorForInvalidAction(t *testing.T) {
+	t.Parallel()
+	_, err := PostSyncActionFromConfig("archive")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "GOOGLE_POST_SYNC_ACTION") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// Logs a single summary line with all field values and INFO level when there are no errors.
+func TestPrintSyncSummaryLogsFieldValuesAtInfoLevel(t *testing.T) {
+	buf := captureSlogOutput(t)
+
+	PrintSyncSummary(googletasksync.SyncSummary{
+		Seen:      4,
+		Created:   3,
+		Skipped:   1,
+		Failed:    0,
+		Completed: 3,
+		Deleted:   0,
+	})
+
+	got := buf.String()
+	if !strings.Contains(got, "level=INFO") {
+		t.Fatalf("expected info level log, got %q", got)
+	}
+	if !strings.Contains(got, `seen=4`) {
+		t.Fatalf("expected seen=4 in log, got %q", got)
+	}
+	if !strings.Contains(got, `created=3`) {
+		t.Fatalf("expected created=3 in log, got %q", got)
+	}
+	if !strings.Contains(got, `skipped=1`) {
+		t.Fatalf("expected skipped=1 in log, got %q", got)
+	}
+	if !strings.Contains(got, `failed=0`) {
+		t.Fatalf("expected failed=0 in log, got %q", got)
+	}
+	if !strings.Contains(got, `completed=3`) {
+		t.Fatalf("expected completed=3 in log, got %q", got)
+	}
+	if !strings.Contains(got, `deleted=0`) {
+		t.Fatalf("expected deleted=0 in log, got %q", got)
+	}
+}
+
+// Logs the error level with an errors field containing non-nil error messages when the sync encountered failures.
+func TestPrintSyncSummaryLogsErrorsAtErrorLevel(t *testing.T) {
+	buf := captureSlogOutput(t)
+
+	PrintSyncSummary(googletasksync.SyncSummary{
+		Seen:      1,
+		Created:   0,
+		Skipped:   0,
+		Failed:    1,
+		Completed: 0,
+		Deleted:   0,
+		Errors:    []error{errors.New("ticktick unavailable"), nil, errors.New("db write failed")},
+	})
+
+	got := buf.String()
+	if !strings.Contains(got, "level=ERROR") {
+		t.Fatalf("expected error level log, got %q", got)
+	}
+	if !strings.Contains(got, `errors="ticktick unavailable, db write failed"`) {
+		t.Fatalf("expected errors in log, got %q", got)
+	}
+}
+
+// Creates HTTP test servers for Google Tasks and TickTick APIs
+// that respond to a one-task sync scenario (list, create, complete).
 func startMockServers(t *testing.T) (googleServer, ticktickServer *httptest.Server) {
 	t.Helper()
 
