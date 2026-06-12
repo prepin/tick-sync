@@ -2,7 +2,7 @@ package googletasksync
 
 import "context"
 
-//go:generate go run go.uber.org/mock/mockgen -source=ports.go -destination=mocks/mocks.go -package=mocks
+//go:generate go tool mockgen -source=ports.go -destination=mocks/mocks.go -package=mocks
 
 type GoogleTasksClient interface {
 	ListUncompleted(ctx context.Context) ([]GoogleTask, error)

@@ -2,6 +2,8 @@ module github.com/prepin/tick-sync
 
 go 1.26.4
 
+tool go.uber.org/mock/mockgen
+
 require (
 	github.com/joho/godotenv v1.5.1
 	go.uber.org/mock v0.6.0
