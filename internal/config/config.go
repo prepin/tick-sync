@@ -34,7 +34,7 @@ type Config struct {
 func Load() (Config, error) {
 	_ = godotenv.Load()
 
-	rawAction := strings.TrimSpace(os.Getenv("GOOGLE_POST_SYNC_ACTION"))
+	rawAction := env("GOOGLE_POST_SYNC_ACTION")
 	if rawAction == "" {
 		rawAction = "complete"
 	}
@@ -50,18 +50,18 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		DBPath:               strings.TrimSpace(os.Getenv("DB_PATH")),
+		DBPath:               env("DB_PATH"),
 		GooglePostSyncAction: postSyncAction,
-		GoogleClientID:       strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
-		GoogleClientSecret:   strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET")),
-		GoogleAccessToken:    strings.TrimSpace(os.Getenv("GOOGLE_ACCESS_TOKEN")),
-		GoogleRefreshToken:   strings.TrimSpace(os.Getenv("GOOGLE_REFRESH_TOKEN")),
-		GoogleTokenType:      strings.TrimSpace(os.Getenv("GOOGLE_TOKEN_TYPE")),
-		GoogleTaskListID:     strings.TrimSpace(os.Getenv("GOOGLE_TASKLIST_ID")),
-		TickTickAccessToken:  strings.TrimSpace(os.Getenv("TICKTICK_ACCESS_TOKEN")),
-		TickTickAPIBaseURL:   strings.TrimSpace(os.Getenv("TICKTICK_API_BASE_URL")),
-		TickTickTimeZone:     strings.TrimSpace(os.Getenv("TICKTICK_TIME_ZONE")),
-		TickTickProjectID:    strings.TrimSpace(os.Getenv("TICKTICK_PROJECT_ID")),
+		GoogleClientID:       env("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:   env("GOOGLE_CLIENT_SECRET"),
+		GoogleAccessToken:    env("GOOGLE_ACCESS_TOKEN"),
+		GoogleRefreshToken:   env("GOOGLE_REFRESH_TOKEN"),
+		GoogleTokenType:      env("GOOGLE_TOKEN_TYPE"),
+		GoogleTaskListID:     env("GOOGLE_TASKLIST_ID"),
+		TickTickAccessToken:  env("TICKTICK_ACCESS_TOKEN"),
+		TickTickAPIBaseURL:   env("TICKTICK_API_BASE_URL"),
+		TickTickTimeZone:     env("TICKTICK_TIME_ZONE"),
+		TickTickProjectID:    env("TICKTICK_PROJECT_ID"),
 	}
 
 	if cfg.GoogleTokenType == "" {
@@ -70,7 +70,7 @@ func Load() (Config, error) {
 	if cfg.DBPath == "" {
 		cfg.DBPath = "./tick-sync.db"
 	}
-	pollInterval, err := parsePollInterval(os.Getenv("POLL_INTERVAL"))
+	pollInterval, err := parsePollInterval(env("POLL_INTERVAL"))
 	if err != nil {
 		return Config{}, err
 	}
@@ -85,7 +85,7 @@ func Load() (Config, error) {
 		cfg.TickTickTimeZone = "UTC"
 	}
 
-	expiry, err := parseTokenExpiry(os.Getenv("GOOGLE_TOKEN_EXPIRY"))
+	expiry, err := parseTokenExpiry(env("GOOGLE_TOKEN_EXPIRY"))
 	if err != nil {
 		return Config{}, err
 	}
@@ -118,8 +118,11 @@ func (c Config) Validate() error {
 	return nil
 }
 
+func env(key string) string {
+	return strings.TrimSpace(os.Getenv(key))
+}
+
 func parseTokenExpiry(value string) (time.Time, error) {
-	value = strings.TrimSpace(value)
 	if value == "" {
 		return time.Now().Add(-time.Hour), nil
 	}
@@ -133,7 +136,6 @@ func parseTokenExpiry(value string) (time.Time, error) {
 }
 
 func parsePollInterval(value string) (time.Duration, error) {
-	value = strings.TrimSpace(value)
 	if value == "" {
 		return 5 * time.Minute, nil
 	}

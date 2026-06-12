@@ -154,7 +154,6 @@ type createTaskResponse struct {
 }
 
 func formatDueDate(value string) (string, bool, error) {
-	value = strings.TrimSpace(value)
 	if value == "" {
 		return "", false, nil
 	}
