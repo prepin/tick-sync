@@ -33,19 +33,19 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 
 	store, err := sqlitestore.NewGoogleTasksStore(ctx, db)
 	if err != nil {
-		_ = db.Close()
+		db.Close()
 		return nil, fmt.Errorf("create google tasks store: %w", err)
 	}
 
 	google, err := googleclient.New(ctx, cfg)
 	if err != nil {
-		_ = db.Close()
+		db.Close()
 		return nil, fmt.Errorf("create google tasks client: %w", err)
 	}
 
 	ticktick, err := ticktickclient.New(cfg)
 	if err != nil {
-		_ = db.Close()
+		db.Close()
 		return nil, fmt.Errorf("create ticktick client: %w", err)
 	}
 
