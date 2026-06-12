@@ -243,6 +243,7 @@ func TestReadErrorBodyReturnsFallbackMessageWhenReadFails(t *testing.T) {
 	}
 }
 
+// faultyReader implements io.Reader to simulate a read failure for testing readErrorBody on stdlib io.ReadCloser.
 type faultyReader struct{}
 
 func (f *faultyReader) Read(_ []byte) (int, error) {

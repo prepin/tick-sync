@@ -100,6 +100,21 @@ func TestCompletePatchesGoogleTaskStatus(t *testing.T) {
 	}
 }
 
+// Reports an error when the PATCH request to complete a task responds with a non-2xx status.
+func TestCompleteReportsErrorOnNon2xxResponse(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "task not found", http.StatusNotFound)
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestClient(t, ctx, server.URL+"/")
+	if err := client.Complete(ctx, "google-1"); err == nil {
+		t.Fatal("expected error from complete")
+	}
+}
+
 // Sends a DELETE request to the Tasks API for the specified task.
 func TestDeleteDeletesGoogleTask(t *testing.T) {
 	t.Parallel()
@@ -119,6 +134,21 @@ func TestDeleteDeletesGoogleTask(t *testing.T) {
 	client := newTestClient(t, ctx, server.URL+"/")
 	if err := client.Delete(ctx, "google-1"); err != nil {
 		t.Fatalf("delete task: %v", err)
+	}
+}
+
+// Reports an error when the DELETE request responds with a non-2xx status.
+func TestDeleteReportsErrorOnNon2xxResponse(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestClient(t, ctx, server.URL+"/")
+	if err := client.Delete(ctx, "google-1"); err == nil {
+		t.Fatal("expected error from delete")
 	}
 }
 

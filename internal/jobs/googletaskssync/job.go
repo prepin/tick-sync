@@ -53,26 +53,16 @@ func (j *Job) run(ctx context.Context) {
 
 func (j *Job) Execute(ctx context.Context) error {
 	summary, syncErr := j.usecase.SyncGoogleTasksToTickTick(ctx)
-	PrintSyncSummary(summary)
+	j.logSyncSummary(summary)
 	if syncErr != nil {
 		return fmt.Errorf("sync google tasks to ticktick: %w", syncErr)
 	}
 	return nil
 }
 
-func PostSyncActionFromConfig(value string) (googletasksync.PostSyncAction, error) {
-	switch strings.TrimSpace(value) {
-	case "", "complete":
-		return googletasksync.PostSyncActionComplete, nil
-	case "delete":
-		return googletasksync.PostSyncActionDelete, nil
-	default:
-		return "", fmt.Errorf("unsupported GOOGLE_POST_SYNC_ACTION %q; expected complete or delete", value)
-	}
-}
-
-func PrintSyncSummary(summary googletasksync.SyncSummary) {
+func (j *Job) logSyncSummary(summary googletasksync.SyncSummary) {
 	attrs := []slog.Attr{
+		slog.String("job", j.Name()),
 		slog.Int("seen", summary.Seen),
 		slog.Int("created", summary.Created),
 		slog.Int("skipped", summary.Skipped),

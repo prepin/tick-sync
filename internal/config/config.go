@@ -8,11 +8,12 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"github.com/prepin/tick-sync/internal/consts"
 )
 
 type Config struct {
 	DBPath               string
-	GooglePostSyncAction string
+	GooglePostSyncAction consts.PostSyncAction
 	PollInterval         time.Duration
 
 	GoogleClientID     string
@@ -33,9 +34,24 @@ type Config struct {
 func Load() (Config, error) {
 	_ = godotenv.Load()
 
+	rawAction := strings.TrimSpace(os.Getenv("GOOGLE_POST_SYNC_ACTION"))
+	if rawAction == "" {
+		rawAction = "complete"
+	}
+
+	var postSyncAction consts.PostSyncAction
+	switch rawAction {
+	case string(consts.PostSyncActionComplete):
+		postSyncAction = consts.PostSyncActionComplete
+	case string(consts.PostSyncActionDelete):
+		postSyncAction = consts.PostSyncActionDelete
+	default:
+		return Config{}, fmt.Errorf("unsupported GOOGLE_POST_SYNC_ACTION %q; expected complete or delete", rawAction)
+	}
+
 	cfg := Config{
 		DBPath:               strings.TrimSpace(os.Getenv("DB_PATH")),
-		GooglePostSyncAction: strings.TrimSpace(os.Getenv("GOOGLE_POST_SYNC_ACTION")),
+		GooglePostSyncAction: postSyncAction,
 		GoogleClientID:       strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_ID")),
 		GoogleClientSecret:   strings.TrimSpace(os.Getenv("GOOGLE_CLIENT_SECRET")),
 		GoogleAccessToken:    strings.TrimSpace(os.Getenv("GOOGLE_ACCESS_TOKEN")),
@@ -53,9 +69,6 @@ func Load() (Config, error) {
 	}
 	if cfg.DBPath == "" {
 		cfg.DBPath = "./tick-sync.db"
-	}
-	if cfg.GooglePostSyncAction == "" {
-		cfg.GooglePostSyncAction = "complete"
 	}
 	pollInterval, err := parsePollInterval(os.Getenv("POLL_INTERVAL"))
 	if err != nil {

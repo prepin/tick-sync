@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/prepin/tick-sync/internal/consts"
 )
 
 // Loads config with all defaults applied when environment variables are empty.
@@ -28,7 +30,7 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	if cfg.DBPath != "./tick-sync.db" {
 		t.Fatalf("unexpected db path: %s", cfg.DBPath)
 	}
-	if cfg.GooglePostSyncAction != "complete" {
+	if cfg.GooglePostSyncAction != consts.PostSyncActionComplete {
 		t.Fatalf("unexpected post sync action: %s", cfg.GooglePostSyncAction)
 	}
 	if cfg.PollInterval != 5*time.Minute {
@@ -151,5 +153,21 @@ func TestParsePollIntervalReportsErrorForNonPositiveDuration(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected error for %q", value)
 		}
+	}
+}
+
+// Reports an error when GOOGLE_POST_SYNC_ACTION is not "complete" or "delete".
+func TestLoadRejectsInvalidPostSyncAction(t *testing.T) {
+	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
+	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
+	t.Setenv("GOOGLE_POST_SYNC_ACTION", "archive")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "GOOGLE_POST_SYNC_ACTION") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }

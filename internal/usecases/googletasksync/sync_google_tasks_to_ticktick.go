@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
+	"github.com/prepin/tick-sync/internal/consts"
 )
 
-type PostSyncAction string
+type PostSyncAction = consts.PostSyncAction
 
 const (
-	PostSyncActionComplete PostSyncAction = "complete"
-	PostSyncActionDelete   PostSyncAction = "delete"
+	PostSyncActionComplete = consts.PostSyncActionComplete
+	PostSyncActionDelete   = consts.PostSyncActionDelete
 )
 
 func (u *Usecase) SyncGoogleTasksToTickTick(ctx context.Context) (SyncSummary, error) {

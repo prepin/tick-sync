@@ -26,11 +26,6 @@ type App struct {
 }
 
 func New(ctx context.Context, cfg config.Config) (*App, error) {
-	postSyncAction, err := googletaskssyncjob.PostSyncActionFromConfig(cfg.GooglePostSyncAction)
-	if err != nil {
-		return nil, err
-	}
-
 	db, err := sql.Open("sqlite", cfg.DBPath)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite db: %w", err)
@@ -54,7 +49,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("create ticktick client: %w", err)
 	}
 
-	uc := usecase.New(google, ticktick, store, postSyncAction)
+	uc := usecase.New(google, ticktick, store, cfg.GooglePostSyncAction)
 	job := googletaskssyncjob.New(uc, cfg.PollInterval)
 
 	return &App{

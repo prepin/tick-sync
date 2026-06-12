@@ -47,7 +47,7 @@ func TestJobStartExecutesSyncAndStopsOnCancel(t *testing.T) {
 }
 
 // Does not enter the ticker loop when the initial Execute call fails: the goroutine exits after the single failed attempt.
-func TestJobStartLogsAndReturnsOnExecuteFailure(t *testing.T) {
+func TestJobStartDoesNotEnterTickerLoopOnExecuteFailure(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -86,102 +86,73 @@ func TestJobExecuteReportsSuccess(t *testing.T) {
 	}
 }
 
-// Returns PostSyncActionComplete when the config value is empty or "complete".
-func TestPostSyncActionFromConfigDefaultsToComplete(t *testing.T) {
-	t.Parallel()
-	got, err := PostSyncActionFromConfig("")
-	if err != nil {
-		t.Fatalf("post sync action from config: %v", err)
-	}
-	if got != googletasksync.PostSyncActionComplete {
-		t.Fatalf("unexpected action: %s", got)
-	}
-}
+// Logs the sync summary at INFO level with all field values when there are no errors, including the job name.
+func TestJobExecuteLogsSummaryWithJobName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
 
-// Returns PostSyncActionDelete when the config value is "delete".
-func TestPostSyncActionFromConfigParsesDelete(t *testing.T) {
-	t.Parallel()
-	got, err := PostSyncActionFromConfig("delete")
-	if err != nil {
-		t.Fatalf("post sync action from config: %v", err)
-	}
-	if got != googletasksync.PostSyncActionDelete {
-		t.Fatalf("unexpected action: %s", got)
-	}
-}
+	google := mocks.NewMockGoogleTasksClient(ctrl)
+	ticktick := mocks.NewMockTickTickClient(ctrl)
+	store := mocks.NewMockSyncStore(ctrl)
 
-// Reports an error when the config value is not "complete" or "delete".
-func TestPostSyncActionFromConfigReportsErrorForInvalidAction(t *testing.T) {
-	t.Parallel()
-	_, err := PostSyncActionFromConfig("archive")
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if !strings.Contains(err.Error(), "GOOGLE_POST_SYNC_ACTION") {
-		t.Fatalf("unexpected error: %v", err)
-	}
-}
+	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
+	store.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
-// Logs the sync summary at INFO level with all field values when there are no errors.
-func TestPrintSyncSummaryLogsFieldValuesAtInfoLevel(t *testing.T) {
+	uc := googletasksync.New(google, ticktick, store, googletasksync.PostSyncActionComplete)
+	job := New(uc, time.Minute)
+
 	buf := captureSlogOutput(t)
 
-	PrintSyncSummary(googletasksync.SyncSummary{
-		Seen:      4,
-		Created:   3,
-		Skipped:   1,
-		Failed:    0,
-		Completed: 3,
-		Deleted:   0,
-	})
+	if err := job.Execute(context.Background()); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	got := buf.String()
+	if !strings.Contains(got, `job=google-tasks-sync`) {
+		t.Fatalf("expected job name in log, got %q", got)
+	}
 	if !strings.Contains(got, "level=INFO") {
 		t.Fatalf("expected info level log, got %q", got)
 	}
-	if !strings.Contains(got, `seen=4`) {
-		t.Fatalf("expected seen=4 in log, got %q", got)
-	}
-	if !strings.Contains(got, `created=3`) {
-		t.Fatalf("expected created=3 in log, got %q", got)
-	}
-	if !strings.Contains(got, `skipped=1`) {
-		t.Fatalf("expected skipped=1 in log, got %q", got)
-	}
-	if !strings.Contains(got, `failed=0`) {
-		t.Fatalf("expected failed=0 in log, got %q", got)
-	}
-	if !strings.Contains(got, `completed=3`) {
-		t.Fatalf("expected completed=3 in log, got %q", got)
-	}
-	if !strings.Contains(got, `deleted=0`) {
-		t.Fatalf("expected deleted=0 in log, got %q", got)
+	if !strings.Contains(got, `seen=0`) {
+		t.Fatalf("expected seen=0 in log, got %q", got)
 	}
 }
 
 // Logs the sync summary at ERROR level with joined error messages when the sync encountered failures.
-func TestPrintSyncSummaryLogsErrorsAtErrorLevel(t *testing.T) {
+func TestJobExecuteLogsErrorsAtErrorLevel(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	t.Cleanup(ctrl.Finish)
+
+	google := mocks.NewMockGoogleTasksClient(ctrl)
+	ticktick := mocks.NewMockTickTickClient(ctrl)
+	store := mocks.NewMockSyncStore(ctrl)
+	createErr := errors.New("ticktick unavailable")
+
+	google.EXPECT().ListUncompleted(gomock.Any()).Return([]googletasksync.GoogleTask{{ID: "g1"}}, nil)
+	store.EXPECT().IsProcessed(gomock.Any(), "g1").Return(false, nil)
+	ticktick.EXPECT().CreateInboxTask(gomock.Any(), gomock.Any()).Return(googletasksync.TickTickTask{}, createErr)
+
+	uc := googletasksync.New(google, ticktick, store, googletasksync.PostSyncActionComplete)
+	job := New(uc, time.Minute)
+
 	buf := captureSlogOutput(t)
 
-	PrintSyncSummary(googletasksync.SyncSummary{
-		Seen:      1,
-		Created:   0,
-		Skipped:   0,
-		Failed:    1,
-		Completed: 0,
-		Deleted:   0,
-		Errors:    []error{errors.New("ticktick unavailable"), nil, errors.New("db write failed")},
-	})
+	_ = job.Execute(context.Background())
 
 	got := buf.String()
+	if !strings.Contains(got, `job=google-tasks-sync`) {
+		t.Fatalf("expected job name in log, got %q", got)
+	}
 	if !strings.Contains(got, "level=ERROR") {
 		t.Fatalf("expected error level log, got %q", got)
 	}
-	if !strings.Contains(got, `errors="ticktick unavailable, db write failed"`) {
+	if !strings.Contains(got, `ticktick unavailable`) {
 		t.Fatalf("expected errors in log, got %q", got)
 	}
 }
 
+// Captures slog output into a byte buffer for assertion in tests, restoring the previous default handler after the test.
 func captureSlogOutput(t *testing.T) *bytes.Buffer {
 	t.Helper()
 

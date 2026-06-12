@@ -62,11 +62,6 @@ func runList(ctx context.Context, cfg config.Config, out io.Writer) error {
 }
 
 func runSync(ctx context.Context, cfg config.Config) error {
-	postSyncAction, err := postSyncActionFromConfig(cfg.GooglePostSyncAction)
-	if err != nil {
-		return err
-	}
-
 	db, err := sql.Open("sqlite", cfg.DBPath)
 	if err != nil {
 		return fmt.Errorf("open sqlite db: %w", err)
@@ -88,10 +83,10 @@ func runSync(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("create ticktick client: %w", err)
 	}
 
-	uc := googletasksync.New(google, ticktick, store, postSyncAction)
+	uc := googletasksync.New(google, ticktick, store, cfg.GooglePostSyncAction)
 
 	summary, syncErr := uc.SyncGoogleTasksToTickTick(ctx)
-	printSyncSummary(summary)
+	logSyncSummary(summary)
 	if syncErr != nil {
 		return fmt.Errorf("sync google tasks to ticktick: %w", syncErr)
 	}
@@ -99,18 +94,7 @@ func runSync(ctx context.Context, cfg config.Config) error {
 	return nil
 }
 
-func postSyncActionFromConfig(value string) (googletasksync.PostSyncAction, error) {
-	switch strings.TrimSpace(value) {
-	case "", "complete":
-		return googletasksync.PostSyncActionComplete, nil
-	case "delete":
-		return googletasksync.PostSyncActionDelete, nil
-	default:
-		return "", fmt.Errorf("unsupported GOOGLE_POST_SYNC_ACTION %q; expected complete or delete", value)
-	}
-}
-
-func printSyncSummary(summary googletasksync.SyncSummary) {
+func logSyncSummary(summary googletasksync.SyncSummary) {
 	attrs := []slog.Attr{
 		slog.Int("seen", summary.Seen),
 		slog.Int("created", summary.Created),

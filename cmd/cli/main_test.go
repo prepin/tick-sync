@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/prepin/tick-sync/internal/config"
+	"github.com/prepin/tick-sync/internal/testutil"
 	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
 )
 
@@ -146,7 +147,7 @@ func TestRunSyncCompletesSyncCycle(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
-	googleServer, ticktickServer := startCLIMockServers(t)
+	googleServer, ticktickServer := testutil.StartMockServers(t)
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 
 	cfg := config.Config{
@@ -198,34 +199,4 @@ func TestRunSyncReturnsErrorOnTickTickAPIFailure(t *testing.T) {
 	if !strings.Contains(err.Error(), "sync google tasks to ticktick") {
 		t.Fatalf("unexpected error: %v", err)
 	}
-}
-
-// Creates HTTP test servers for the Google Tasks and TickTick APIs that respond to a one-task sync scenario (list, create, complete).
-func startCLIMockServers(t *testing.T) (googleServer, ticktickServer *httptest.Server) {
-	t.Helper()
-
-	googleServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch r.Method {
-		case http.MethodGet:
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"items": []map[string]string{
-					{"id": "g1", "title": "Buy milk"},
-				},
-			})
-		case http.MethodPatch:
-			_ = json.NewEncoder(w).Encode(map[string]string{"id": "g1", "status": "completed"})
-		default:
-			t.Errorf("unexpected Google method: %s %s", r.Method, r.URL.Path)
-		}
-	}))
-	t.Cleanup(googleServer.Close)
-
-	ticktickServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{"id": "t1"})
-	}))
-	t.Cleanup(ticktickServer.Close)
-
-	return googleServer, ticktickServer
 }
