@@ -249,6 +249,7 @@ func (f *faultyReader) Read(_ []byte) (int, error) {
 	return 0, errors.New("read failed")
 }
 
+// Creates a TickTick client configured for the given mock server URL and optional project ID.
 func newTestClient(t *testing.T, baseURL string, projectID string) *Client {
 	t.Helper()
 
@@ -265,6 +266,7 @@ func newTestClient(t *testing.T, baseURL string, projectID string) *Client {
 	return client
 }
 
+// Asserts that the given body map contains a string value at the named key matching the expected value.
 func assertRequestField(t *testing.T, body map[string]any, name string, want string) {
 	t.Helper()
 
@@ -277,6 +279,7 @@ func assertRequestField(t *testing.T, body map[string]any, name string, want str
 	}
 }
 
+// Encodes the value as JSON and writes it to the response writer, failing the test if encoding fails.
 func writeJSON(t *testing.T, w http.ResponseWriter, value any) {
 	t.Helper()
 

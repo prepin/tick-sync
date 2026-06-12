@@ -200,10 +200,7 @@ func TestRunSyncReturnsErrorOnTickTickAPIFailure(t *testing.T) {
 	}
 }
 
-// startCLIMockServers creates httptest servers for Google Tasks and TickTick APIs
-// that respond to a simple one-task sync scenario.
-// Creates HTTP test servers for the Google Tasks and TickTick APIs
-// that respond to a one-task sync scenario (list, create, complete).
+// Creates HTTP test servers for the Google Tasks and TickTick APIs that respond to a one-task sync scenario (list, create, complete).
 func startCLIMockServers(t *testing.T) (googleServer, ticktickServer *httptest.Server) {
 	t.Helper()
 

@@ -64,7 +64,7 @@ func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault
 	assertSummary(t, summary, want)
 }
 
-// Does not delete the Google task and calls Complete instead when the post-sync action is not delete.
+// Deletes the Google task instead of completing it when the post-sync action is set to "delete".
 func TestUsecaseSyncGoogleTasksToTickTickDeletesTaskWhenConfigured(t *testing.T) {
 	ctx := context.Background()
 	ctrl := gomock.NewController(t)

@@ -1,70 +1,62 @@
-package service
+package googletaskssyncjob
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
-	googleclient "github.com/prepin/tick-sync/internal/clients/google"
-	ticktickclient "github.com/prepin/tick-sync/internal/clients/ticktick"
-	"github.com/prepin/tick-sync/internal/config"
-	sqlitestore "github.com/prepin/tick-sync/internal/infra/sqlite"
 	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
-	_ "modernc.org/sqlite"
 )
 
-type SyncRunner struct {
-	usecase *googletasksync.Usecase
+type Job struct {
+	usecase  *googletasksync.Usecase
+	interval time.Duration
 }
 
-func NewSyncRunner(ctx context.Context, cfg config.Config) (*SyncRunner, func() error, error) {
-	postSyncAction, err := PostSyncActionFromConfig(cfg.GooglePostSyncAction)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	db, err := sql.Open("sqlite", cfg.DBPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("open sqlite db: %w", err)
-	}
-	cleanup := func() error {
-		return db.Close()
-	}
-
-	store, err := sqlitestore.NewGoogleTasksStore(ctx, db)
-	if err != nil {
-		_ = cleanup()
-		return nil, nil, fmt.Errorf("create google tasks store: %w", err)
-	}
-
-	google, err := googleclient.New(ctx, cfg)
-	if err != nil {
-		_ = cleanup()
-		return nil, nil, fmt.Errorf("create google tasks client: %w", err)
-	}
-
-	ticktick, err := ticktickclient.New(cfg)
-	if err != nil {
-		_ = cleanup()
-		return nil, nil, fmt.Errorf("create ticktick client: %w", err)
-	}
-
-	runner := &SyncRunner{
-		usecase: googletasksync.New(google, ticktick, store, postSyncAction),
-	}
-
-	return runner, cleanup, nil
+func New(usecase *googletasksync.Usecase, interval time.Duration) *Job {
+	return &Job{usecase: usecase, interval: interval}
 }
 
-func (r *SyncRunner) RunOnce(ctx context.Context) error {
-	summary, syncErr := r.usecase.SyncGoogleTasksToTickTick(ctx)
+func (j *Job) Name() string {
+	return "google-tasks-sync"
+}
+
+func (j *Job) Start(ctx context.Context) {
+	go j.run(ctx)
+}
+
+func (j *Job) run(ctx context.Context) {
+	slog.Info("job started", "job", j.Name())
+
+	if err := j.Execute(ctx); err != nil {
+		slog.Error("job initial sync failed", "job", j.Name(), "error", err)
+		return
+	}
+
+	ticker := time.NewTicker(j.interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("job shutting down", "job", j.Name())
+			return
+		case <-ticker.C:
+			if err := j.Execute(ctx); err != nil {
+				slog.Error("job sync failed", "job", j.Name(), "error", err)
+			}
+		}
+	}
+}
+
+func (j *Job) Execute(ctx context.Context) error {
+	summary, syncErr := j.usecase.SyncGoogleTasksToTickTick(ctx)
 	PrintSyncSummary(summary)
 	if syncErr != nil {
 		return fmt.Errorf("sync google tasks to ticktick: %w", syncErr)
 	}
-
 	return nil
 }
 

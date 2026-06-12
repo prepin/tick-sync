@@ -215,6 +215,7 @@ func TestFormatTimeReturnsRFC3339NanoUTC(t *testing.T) {
 	}
 }
 
+// Creates a GoogleTasksStore with a fresh in-memory SQLite database for testing.
 func newTestStore(t *testing.T, ctx context.Context) *GoogleTasksStore {
 	t.Helper()
 
@@ -226,6 +227,7 @@ func newTestStore(t *testing.T, ctx context.Context) *GoogleTasksStore {
 	return store
 }
 
+// Opens a temporary SQLite database that is cleaned up after the test completes.
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
@@ -242,6 +244,7 @@ func openTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
+// Returns a default SyncedTaskRecord fixture for a single google-1 task synced to ticktick-1 with complete action.
 func syncedTaskRecord() googletasksync.SyncedTaskRecord {
 	return googletasksync.SyncedTaskRecord{
 		GoogleTaskID:   "google-1",

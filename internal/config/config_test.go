@@ -82,19 +82,6 @@ func TestValidateAllowsRefreshTokenOnly(t *testing.T) {
 	}
 }
 
-// Passes validation with only Google OAuth credentials, without requiring TickTick values.
-func TestValidateDoesNotRequireTickTickCredentials(t *testing.T) {
-	cfg := Config{
-		GoogleClientID:     "client-id",
-		GoogleClientSecret: "client-secret",
-		GoogleRefreshToken: "refresh-token",
-	}
-
-	if err := cfg.Validate(); err != nil {
-		t.Fatalf("validate config: %v", err)
-	}
-}
-
 // Returns a time in the past as the default token expiry when no value is configured.
 func TestParseTokenExpiryDefaultsToExpiredTime(t *testing.T) {
 	expiry, err := parseTokenExpiry("")

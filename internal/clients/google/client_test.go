@@ -224,6 +224,7 @@ func TestMapTaskReturnsEmptyTaskForNilInput(t *testing.T) {
 	}
 }
 
+// Creates a Google Tasks client using the test endpoint without authentication.
 func newTestClient(t *testing.T, ctx context.Context, endpoint string) *Client {
 	t.Helper()
 
@@ -239,6 +240,7 @@ func newTestClient(t *testing.T, ctx context.Context, endpoint string) *Client {
 	return &Client{service: service, taskListID: "@default"}
 }
 
+// Encodes the value as JSON and writes it to the response writer, failing the test if encoding fails.
 func writeJSON(t *testing.T, w http.ResponseWriter, value any) {
 	t.Helper()
 

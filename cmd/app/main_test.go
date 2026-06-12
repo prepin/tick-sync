@@ -1,67 +1,75 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"errors"
-	"log/slog"
-	"strings"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/prepin/tick-sync/internal/app"
+	"github.com/prepin/tick-sync/internal/config"
 )
 
-// runSync logs "sync started" and returns nil when RunOnce succeeds.
-func TestRunSyncLogsStartedAndReturnsNilOnSuccess(t *testing.T) {
-	ctx := context.Background()
-	buf := captureLogOutput(t)
+// Runs the app with mock servers, executes one sync, and returns nil when the context is cancelled.
+func TestMainRunsSyncAndStopsOnContextCancel(t *testing.T) {
+	googleServer, ticktickServer := startMockServers(t)
+	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 
-	if err := runSync(ctx, &stubRunner{}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	cfg := config.Config{
+		DBPath:              dbPath,
+		GoogleAPIEndpoint:   googleServer.URL + "/",
+		GoogleTaskListID:    "@default",
+		TickTickAPIBaseURL:  ticktickServer.URL,
+		TickTickAccessToken: "test-token",
+		PollInterval:        time.Minute,
 	}
 
-	got := buf.String()
-	if !strings.Contains(got, `msg="sync started"`) {
-		t.Fatalf("expected sync started log, got %q", got)
-	}
-}
+	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer cancel()
 
-// runSync returns the error from RunOnce and does not log "sync finished".
-func TestRunSyncReturnsErrorWhenRunOnceFails(t *testing.T) {
-	ctx := context.Background()
-	buf := captureLogOutput(t)
+	application, err := app.New(ctx, cfg)
+	if err != nil {
+		t.Fatalf("new app: %v", err)
+	}
+	t.Cleanup(func() { _ = application.Close() })
 
-	gotErr := runSync(ctx, &stubRunner{err: errors.New("ticktick unavailable")})
-	if gotErr == nil {
-		t.Fatal("expected error")
-	}
-	if gotErr.Error() != "ticktick unavailable" {
-		t.Fatalf("unexpected error: %v", gotErr)
-	}
-
-	got := buf.String()
-	if !strings.Contains(got, `msg="sync started"`) {
-		t.Fatalf("expected sync started log, got %q", got)
-	}
-	if strings.Contains(got, `msg="sync finished"`) {
-		t.Fatal("did not expect sync finished from runSync; PrintSyncSummary logs it inside RunOnce")
+	if err := application.Run(ctx); err != nil {
+		t.Fatalf("app run: %v", err)
 	}
 }
 
-type stubRunner struct {
-	err error
-}
-
-func (r *stubRunner) RunOnce(_ context.Context) error {
-	return r.err
-}
-
-func captureLogOutput(t *testing.T) *bytes.Buffer {
+// Creates HTTP test servers for the Google Tasks and TickTick APIs that respond to a one-task sync scenario (list, create, complete).
+func startMockServers(t *testing.T) (googleServer, ticktickServer *httptest.Server) {
 	t.Helper()
 
-	var buf bytes.Buffer
-	handler := slog.NewTextHandler(&buf, nil)
-	prev := slog.Default()
-	slog.SetDefault(slog.New(handler))
-	t.Cleanup(func() { slog.SetDefault(prev) })
+	googleServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.Method {
+		case http.MethodGet:
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"items": []map[string]string{
+					{"id": "g1", "title": "Buy milk"},
+				},
+			})
+		case http.MethodPatch:
+			_ = json.NewEncoder(w).Encode(map[string]string{
+				"id":     "g1",
+				"status": "completed",
+			})
+		default:
+			t.Errorf("unexpected Google method: %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	t.Cleanup(googleServer.Close)
 
-	return &buf
+	ticktickServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]string{"id": "t1"})
+	}))
+	t.Cleanup(ticktickServer.Close)
+
+	return googleServer, ticktickServer
 }

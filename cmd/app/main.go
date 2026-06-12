@@ -6,15 +6,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"github.com/prepin/tick-sync/internal/app"
 	"github.com/prepin/tick-sync/internal/config"
-	"github.com/prepin/tick-sync/internal/service"
 )
-
-type syncRunner interface {
-	RunOnce(ctx context.Context) error
-}
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -26,40 +21,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	runner, cleanup, err := service.NewSyncRunner(ctx, cfg)
+	application, err := app.New(ctx, cfg)
 	if err != nil {
-		slog.Error("create sync runner", "error", err)
+		slog.Error("create app", "error", err)
 		os.Exit(1)
 	}
 	defer func() {
-		if err := cleanup(); err != nil {
+		if err := application.Close(); err != nil {
 			slog.Warn("cleanup failed", "error", err)
 		}
 	}()
 
 	slog.Info("sync service started", "poll_interval", cfg.PollInterval)
-	if err := runSync(ctx, runner); err != nil {
+	if err := application.Run(ctx); err != nil {
+		slog.Error("app run failed", "error", err)
 		os.Exit(1)
 	}
-
-	ticker := time.NewTicker(cfg.PollInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			slog.Info("shutdown requested")
-			return
-		case <-ticker.C:
-			runSync(ctx, runner)
-		}
-	}
-}
-
-func runSync(ctx context.Context, runner syncRunner) error {
-	slog.Info("sync started")
-	if err := runner.RunOnce(ctx); err != nil {
-		return err
-	}
-	return nil
 }
