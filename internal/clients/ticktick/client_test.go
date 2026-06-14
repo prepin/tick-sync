@@ -30,8 +30,8 @@ func TestNewAppliesDefaults(t *testing.T) {
 		t.Fatalf("new ticktick client: %v", err)
 	}
 
-	if client.baseURL.String() != defaultAPIBaseURL+"/" {
-		t.Fatalf("unexpected base url: %s", client.baseURL.String())
+	if client.baseURL != defaultAPIBaseURL {
+		t.Fatalf("unexpected base url: %s", client.baseURL)
 	}
 	if client.timeZone != defaultTimeZone {
 		t.Fatalf("unexpected timezone: %s", client.timeZone)

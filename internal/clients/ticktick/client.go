@@ -23,7 +23,7 @@ const (
 
 type Client struct {
 	httpClient *http.Client
-	baseURL    *url.URL
+	baseURL    string
 	token      string
 	timeZone   string
 	projectID  string
@@ -49,17 +49,17 @@ func New(cfg config.Config, opts ...Option) (*Client, error) {
 		apiBaseURL = defaultAPIBaseURL
 	}
 
-	baseURL, err := url.Parse(strings.TrimRight(apiBaseURL, "/") + "/")
+	parsedBaseURL, err := url.Parse(apiBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse ticktick api base url: %w", err)
 	}
-	if !baseURL.IsAbs() {
+	if !parsedBaseURL.IsAbs() {
 		return nil, fmt.Errorf("parse ticktick api base url: URL must be absolute")
 	}
 
 	client := &Client{
 		httpClient: http.DefaultClient,
-		baseURL:    baseURL,
+		baseURL:    apiBaseURL,
 		token:      cfg.TickTickAccessToken,
 		timeZone:   cfg.TickTickTimeZone,
 		projectID:  cfg.TickTickProjectID,
@@ -87,8 +87,12 @@ func (c *Client) CreateInboxTask(ctx context.Context, task googletasksync.TickTi
 		return googletasksync.TickTickTask{}, fmt.Errorf("marshal ticktick create task request: %w", err)
 	}
 
-	requestURL := c.baseURL.ResolveReference(&url.URL{Path: "task"})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL.String(), bytes.NewReader(body))
+	requestURL, err := url.JoinPath(c.baseURL, "task")
+	if err != nil {
+		return googletasksync.TickTickTask{}, fmt.Errorf("build ticktick request url: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewReader(body))
 	if err != nil {
 		return googletasksync.TickTickTask{}, fmt.Errorf("create ticktick request: %w", err)
 	}
