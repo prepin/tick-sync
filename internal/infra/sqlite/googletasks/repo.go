@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
-
-	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
 )
 
 const createSyncedGoogleTasksTable = `
@@ -34,8 +32,6 @@ INSERT OR IGNORE INTO synced_google_tasks (
   post_sync_action,
   synced_at
 ) VALUES (?, ?, ?, ?, ?, ?);`
-
-var _ googletasksync.SyncRepo = (*GoogleTasksRepo)(nil)
 
 type GoogleTasksRepo struct {
 	db *sql.DB

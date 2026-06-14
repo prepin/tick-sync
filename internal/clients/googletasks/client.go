@@ -11,8 +11,6 @@ import (
 	tasksapi "google.golang.org/api/tasks/v1"
 )
 
-var _ googletasksync.GoogleTasksClient = (*Client)(nil)
-
 type Client struct {
 	service    *tasksapi.Service
 	taskListID string

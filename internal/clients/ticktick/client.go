@@ -21,8 +21,6 @@ const (
 	maxErrorBodyBytes = 4096
 )
 
-var _ googletasksync.TickTickClient = (*Client)(nil)
-
 type Client struct {
 	httpClient *http.Client
 	baseURL    *url.URL
