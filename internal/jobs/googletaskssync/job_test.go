@@ -19,7 +19,7 @@ func TestJobName(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
-	job := New(googletasksync.New(mocks.NewMockGoogleTasksClient(ctrl), mocks.NewMockTickTickClient(ctrl), mocks.NewMockSyncStore(ctrl), ""), time.Minute)
+	job := New(googletasksync.New(mocks.NewMockGoogleTasksClient(ctrl), mocks.NewMockTickTickClient(ctrl), mocks.NewMockSyncRepo(ctrl), ""), time.Minute)
 	if got := job.Name(); got != "google-tasks-sync" {
 		t.Fatalf("unexpected name: %s", got)
 	}
@@ -32,12 +32,12 @@ func TestJobStartExecutesSyncAndStopsOnCancel(t *testing.T) {
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
 	ticktick := mocks.NewMockTickTickClient(ctrl)
-	store := mocks.NewMockSyncStore(ctrl)
+	repo := mocks.NewMockSyncRepo(ctrl)
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
-	store.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
+	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
-	uc := googletasksync.New(google, ticktick, store, googletasksync.PostSyncActionComplete)
+	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := New(uc, time.Minute)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -53,11 +53,11 @@ func TestJobStartDoesNotEnterTickerLoopOnExecuteFailure(t *testing.T) {
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
 	ticktick := mocks.NewMockTickTickClient(ctrl)
-	store := mocks.NewMockSyncStore(ctrl)
+	repo := mocks.NewMockSyncRepo(ctrl)
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, errors.New("google unavailable"))
 
-	uc := googletasksync.New(google, ticktick, store, googletasksync.PostSyncActionComplete)
+	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := New(uc, time.Minute)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -73,12 +73,12 @@ func TestJobExecuteReportsSuccess(t *testing.T) {
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
 	ticktick := mocks.NewMockTickTickClient(ctrl)
-	store := mocks.NewMockSyncStore(ctrl)
+	repo := mocks.NewMockSyncRepo(ctrl)
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
-	store.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
+	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
-	uc := googletasksync.New(google, ticktick, store, googletasksync.PostSyncActionComplete)
+	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := New(uc, time.Minute)
 
 	if err := job.Execute(context.Background()); err != nil {
@@ -93,12 +93,12 @@ func TestJobExecuteLogsSummaryWithJobName(t *testing.T) {
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
 	ticktick := mocks.NewMockTickTickClient(ctrl)
-	store := mocks.NewMockSyncStore(ctrl)
+	repo := mocks.NewMockSyncRepo(ctrl)
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
-	store.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
+	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
-	uc := googletasksync.New(google, ticktick, store, googletasksync.PostSyncActionComplete)
+	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := New(uc, time.Minute)
 
 	buf := captureSlogOutput(t)
@@ -126,14 +126,14 @@ func TestJobExecuteLogsErrorsAtErrorLevel(t *testing.T) {
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
 	ticktick := mocks.NewMockTickTickClient(ctrl)
-	store := mocks.NewMockSyncStore(ctrl)
+	repo := mocks.NewMockSyncRepo(ctrl)
 	createErr := errors.New("ticktick unavailable")
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return([]googletasksync.GoogleTask{{ID: "g1"}}, nil)
-	store.EXPECT().IsProcessed(gomock.Any(), "g1").Return(false, nil)
+	repo.EXPECT().IsProcessed(gomock.Any(), "g1").Return(false, nil)
 	ticktick.EXPECT().CreateInboxTask(gomock.Any(), gomock.Any()).Return(googletasksync.TickTickTask{}, createErr)
 
-	uc := googletasksync.New(google, ticktick, store, googletasksync.PostSyncActionComplete)
+	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := New(uc, time.Minute)
 
 	buf := captureSlogOutput(t)

@@ -33,7 +33,7 @@ func (u *Usecase) SyncGoogleTasksToTickTick(ctx context.Context) (SyncSummary, e
 }
 
 func (u *Usecase) syncTaskToTickTick(ctx context.Context, googleTask GoogleTask, summary *SyncSummary) error {
-	processed, err := u.store.IsProcessed(ctx, googleTask.ID)
+	processed, err := u.repo.IsProcessed(ctx, googleTask.ID)
 	if err != nil {
 		return fmt.Errorf("check processed google task %s: %w", googleTask.ID, err)
 	}
@@ -53,7 +53,7 @@ func (u *Usecase) syncTaskToTickTick(ctx context.Context, googleTask GoogleTask,
 	}
 	summary.Created++
 
-	if err := u.store.MarkProcessed(ctx, SyncedTaskRecord{
+	if err := u.repo.SaveSyncedTask(ctx, SyncedTaskRecord{
 		GoogleTaskID:   googleTask.ID,
 		GoogleUpdated:  googleTask.Updated,
 		GoogleTitle:    googleTask.Title,

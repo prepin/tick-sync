@@ -12,7 +12,7 @@ import (
 	googleclient "github.com/prepin/tick-sync/internal/clients/google"
 	ticktickclient "github.com/prepin/tick-sync/internal/clients/ticktick"
 	"github.com/prepin/tick-sync/internal/config"
-	sqlitestore "github.com/prepin/tick-sync/internal/infra/sqlite"
+	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
 	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
 	_ "modernc.org/sqlite"
 )
@@ -68,9 +68,9 @@ func runSync(ctx context.Context, cfg config.Config) error {
 	}
 	defer db.Close()
 
-	store, err := sqlitestore.NewGoogleTasksStore(ctx, db)
+	repo, err := googletasksrepo.NewGoogleTasksRepo(ctx, db)
 	if err != nil {
-		return fmt.Errorf("create google tasks store: %w", err)
+		return fmt.Errorf("create google tasks repo: %w", err)
 	}
 
 	google, err := googleclient.New(ctx, cfg)
@@ -83,7 +83,7 @@ func runSync(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("create ticktick client: %w", err)
 	}
 
-	uc := googletasksync.New(google, ticktick, store, cfg.GooglePostSyncAction)
+	uc := googletasksync.New(google, ticktick, repo, cfg.GooglePostSyncAction)
 
 	summary, syncErr := uc.SyncGoogleTasksToTickTick(ctx)
 	logSyncSummary(summary)

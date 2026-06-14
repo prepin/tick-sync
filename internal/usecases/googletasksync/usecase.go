@@ -5,7 +5,7 @@ import "time"
 type Usecase struct {
 	google         GoogleTasksClient
 	ticktick       TickTickClient
-	store          SyncStore
+	repo           SyncRepo
 	postSyncAction PostSyncAction
 	now            func() time.Time
 }
@@ -20,11 +20,11 @@ func WithClock(now func() time.Time) Option {
 	}
 }
 
-func New(google GoogleTasksClient, ticktick TickTickClient, store SyncStore, postSyncAction PostSyncAction, opts ...Option) *Usecase {
+func New(google GoogleTasksClient, ticktick TickTickClient, repo SyncRepo, postSyncAction PostSyncAction, opts ...Option) *Usecase {
 	uc := &Usecase{
 		google:         google,
 		ticktick:       ticktick,
-		store:          store,
+		repo:           repo,
 		postSyncAction: normalizePostSyncAction(postSyncAction),
 		now:            time.Now,
 	}

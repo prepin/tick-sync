@@ -1,4 +1,4 @@
-package sqlite
+package googletasks
 
 import (
 	"context"
@@ -13,14 +13,14 @@ import (
 )
 
 // Creates the synced_google_tasks table in the database.
-func TestNewGoogleTasksStoreCreatesTable(t *testing.T) {
+func TestNewGoogleTasksRepoCreatesTable(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t)
 
-	_, err := NewGoogleTasksStore(ctx, db)
+	_, err := NewGoogleTasksRepo(ctx, db)
 	if err != nil {
-		t.Fatalf("new google tasks store: %v", err)
+		t.Fatalf("new google tasks repo: %v", err)
 	}
 
 	var tableName string
@@ -36,17 +36,17 @@ WHERE type = 'table' AND name = 'synced_google_tasks';`).Scan(&tableName)
 	}
 }
 
-// Does not create a store when the database handle is nil.
-func TestNewGoogleTasksStoreRejectsNilDB(t *testing.T) {
+// Does not create a repo when the database handle is nil.
+func TestNewGoogleTasksRepoRejectsNilDB(t *testing.T) {
 	t.Parallel()
-	_, err := NewGoogleTasksStore(context.Background(), nil)
+	_, err := NewGoogleTasksRepo(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}
 }
 
-// Does not create a store when the database is closed and table creation fails.
-func TestNewGoogleTasksStoreReturnsErrorWhenTableCreationFails(t *testing.T) {
+// Does not create a repo when the database is closed and table creation fails.
+func TestNewGoogleTasksRepoReturnsErrorWhenTableCreationFails(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t)
@@ -54,7 +54,7 @@ func TestNewGoogleTasksStoreReturnsErrorWhenTableCreationFails(t *testing.T) {
 		t.Fatalf("close db: %v", err)
 	}
 
-	_, err := NewGoogleTasksStore(ctx, db)
+	_, err := NewGoogleTasksRepo(ctx, db)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -64,12 +64,12 @@ func TestNewGoogleTasksStoreReturnsErrorWhenTableCreationFails(t *testing.T) {
 }
 
 // Returns false for a Google Task ID that has never been stored.
-func TestGoogleTasksStoreIsProcessedReturnsFalseForUnknownTask(t *testing.T) {
+func TestGoogleTasksRepoIsProcessedReturnsFalseForUnknownTask(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	store := newTestStore(t, ctx)
+	repo := newTestRepo(t, ctx)
 
-	processed, err := store.IsProcessed(ctx, "google-1")
+	processed, err := repo.IsProcessed(ctx, "google-1")
 	if err != nil {
 		t.Fatalf("is processed: %v", err)
 	}
@@ -79,15 +79,15 @@ func TestGoogleTasksStoreIsProcessedReturnsFalseForUnknownTask(t *testing.T) {
 }
 
 // Reports an error when IsProcessed cannot query the database.
-func TestGoogleTasksStoreIsProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
+func TestGoogleTasksRepoIsProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	store := newTestStore(t, ctx)
-	if err := store.db.Close(); err != nil {
+	repo := newTestRepo(t, ctx)
+	if err := repo.db.Close(); err != nil {
 		t.Fatalf("close db: %v", err)
 	}
 
-	processed, err := store.IsProcessed(ctx, "google-1")
+	processed, err := repo.IsProcessed(ctx, "google-1")
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -97,16 +97,16 @@ func TestGoogleTasksStoreIsProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.
 }
 
 // Records a synced task and returns true for subsequent IsProcessed checks.
-func TestGoogleTasksStoreMarkProcessedRecordsTask(t *testing.T) {
+func TestGoogleTasksRepoSaveSyncedTaskRecordsTask(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	store := newTestStore(t, ctx)
+	repo := newTestRepo(t, ctx)
 
-	if err := store.MarkProcessed(ctx, syncedTaskRecord()); err != nil {
-		t.Fatalf("mark processed: %v", err)
+	if err := repo.SaveSyncedTask(ctx, syncedTaskRecord()); err != nil {
+		t.Fatalf("save synced task: %v", err)
 	}
 
-	processed, err := store.IsProcessed(ctx, "google-1")
+	processed, err := repo.IsProcessed(ctx, "google-1")
 	if err != nil {
 		t.Fatalf("is processed: %v", err)
 	}
@@ -116,18 +116,18 @@ func TestGoogleTasksStoreMarkProcessedRecordsTask(t *testing.T) {
 }
 
 // Stores all record fields (updated, title, ticktick ID, action, synced at) in the database.
-func TestGoogleTasksStoreMarkProcessedStoresRecordFields(t *testing.T) {
+func TestGoogleTasksRepoSaveSyncedTaskStoresRecordFields(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t)
-	store, err := NewGoogleTasksStore(ctx, db)
+	repo, err := NewGoogleTasksRepo(ctx, db)
 	if err != nil {
-		t.Fatalf("new google tasks store: %v", err)
+		t.Fatalf("new google tasks repo: %v", err)
 	}
 
 	record := syncedTaskRecord()
-	if err := store.MarkProcessed(ctx, record); err != nil {
-		t.Fatalf("mark processed: %v", err)
+	if err := repo.SaveSyncedTask(ctx, record); err != nil {
+		t.Fatalf("save synced task: %v", err)
 	}
 
 	var got struct {
@@ -160,22 +160,22 @@ WHERE google_task_id = ?;`, record.GoogleTaskID).Scan(
 	}
 }
 
-// Does not insert duplicate rows when the same record is marked processed twice.
-func TestGoogleTasksStoreMarkProcessedIsIdempotent(t *testing.T) {
+// Does not insert duplicate rows when the same record is saved twice.
+func TestGoogleTasksRepoSaveSyncedTaskIsIdempotent(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	db := openTestDB(t)
-	store, err := NewGoogleTasksStore(ctx, db)
+	repo, err := NewGoogleTasksRepo(ctx, db)
 	if err != nil {
-		t.Fatalf("new google tasks store: %v", err)
+		t.Fatalf("new google tasks repo: %v", err)
 	}
 
 	record := syncedTaskRecord()
-	if err := store.MarkProcessed(ctx, record); err != nil {
-		t.Fatalf("mark processed: %v", err)
+	if err := repo.SaveSyncedTask(ctx, record); err != nil {
+		t.Fatalf("save synced task: %v", err)
 	}
-	if err := store.MarkProcessed(ctx, record); err != nil {
-		t.Fatalf("mark processed again: %v", err)
+	if err := repo.SaveSyncedTask(ctx, record); err != nil {
+		t.Fatalf("save synced task again: %v", err)
 	}
 
 	var count int
@@ -187,21 +187,21 @@ func TestGoogleTasksStoreMarkProcessedIsIdempotent(t *testing.T) {
 	}
 }
 
-// Reports an error when MarkProcessed cannot write to the database.
-func TestGoogleTasksStoreMarkProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
+// Reports an error when SaveSyncedTask cannot write to the database.
+func TestGoogleTasksRepoSaveSyncedTaskReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
-	store := newTestStore(t, ctx)
-	if err := store.db.Close(); err != nil {
+	repo := newTestRepo(t, ctx)
+	if err := repo.db.Close(); err != nil {
 		t.Fatalf("close db: %v", err)
 	}
 
-	err := store.MarkProcessed(ctx, syncedTaskRecord())
+	err := repo.SaveSyncedTask(ctx, syncedTaskRecord())
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "mark synced google task") {
-		t.Fatalf("expected error about marking synced task, got %v", err)
+	if !strings.Contains(err.Error(), "save synced google task") {
+		t.Fatalf("expected error about saving synced task, got %v", err)
 	}
 }
 
@@ -215,16 +215,16 @@ func TestFormatTimeReturnsRFC3339NanoUTC(t *testing.T) {
 	}
 }
 
-// Creates a GoogleTasksStore with a fresh in-memory SQLite database for testing.
-func newTestStore(t *testing.T, ctx context.Context) *GoogleTasksStore {
+// Creates a GoogleTasksRepo with a fresh in-memory SQLite database for testing.
+func newTestRepo(t *testing.T, ctx context.Context) *GoogleTasksRepo {
 	t.Helper()
 
-	store, err := NewGoogleTasksStore(ctx, openTestDB(t))
+	repo, err := NewGoogleTasksRepo(ctx, openTestDB(t))
 	if err != nil {
-		t.Fatalf("new google tasks store: %v", err)
+		t.Fatalf("new google tasks repo: %v", err)
 	}
 
-	return store
+	return repo
 }
 
 // Opens a temporary SQLite database that is cleaned up after the test completes.

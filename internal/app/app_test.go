@@ -24,7 +24,7 @@ func TestNewRejectsDBOpenFailure(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "create google tasks store") {
+	if !strings.Contains(err.Error(), "create google tasks repo") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -69,7 +69,7 @@ func TestAppRunStopsOnContextCancel(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
-	t.Cleanup(func() { _ = app.Close() })
+	t.Cleanup(func() { app.Close() })
 
 	if err := app.Run(ctx); err != nil {
 		t.Fatalf("unexpected error: %v", err)

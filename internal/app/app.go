@@ -9,7 +9,7 @@ import (
 	googleclient "github.com/prepin/tick-sync/internal/clients/google"
 	ticktickclient "github.com/prepin/tick-sync/internal/clients/ticktick"
 	"github.com/prepin/tick-sync/internal/config"
-	sqlitestore "github.com/prepin/tick-sync/internal/infra/sqlite"
+	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
 	googletaskssyncjob "github.com/prepin/tick-sync/internal/jobs/googletaskssync"
 	usecase "github.com/prepin/tick-sync/internal/usecases/googletasksync"
 	_ "modernc.org/sqlite"
@@ -31,10 +31,10 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("open sqlite db: %w", err)
 	}
 
-	store, err := sqlitestore.NewGoogleTasksStore(ctx, db)
+	repo, err := googletasksrepo.NewGoogleTasksRepo(ctx, db)
 	if err != nil {
 		db.Close()
-		return nil, fmt.Errorf("create google tasks store: %w", err)
+		return nil, fmt.Errorf("create google tasks repo: %w", err)
 	}
 
 	google, err := googleclient.New(ctx, cfg)
@@ -49,7 +49,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("create ticktick client: %w", err)
 	}
 
-	uc := usecase.New(google, ticktick, store, cfg.GooglePostSyncAction)
+	uc := usecase.New(google, ticktick, repo, cfg.GooglePostSyncAction)
 	job := googletaskssyncjob.New(uc, cfg.PollInterval)
 
 	return &App{

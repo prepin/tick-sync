@@ -14,7 +14,7 @@ type TickTickClient interface {
 	CreateInboxTask(ctx context.Context, task TickTickTaskInput) (TickTickTask, error)
 }
 
-type SyncStore interface {
+type SyncRepo interface {
 	IsProcessed(ctx context.Context, googleTaskID string) (bool, error)
-	MarkProcessed(ctx context.Context, record SyncedTaskRecord) error
+	SaveSyncedTask(ctx context.Context, record SyncedTaskRecord) error
 }

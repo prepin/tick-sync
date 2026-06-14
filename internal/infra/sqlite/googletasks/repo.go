@@ -1,4 +1,4 @@
-package sqlite
+package googletasks
 
 import (
 	"context"
@@ -19,27 +19,27 @@ CREATE TABLE IF NOT EXISTS synced_google_tasks (
   synced_at TEXT NOT NULL
 );`
 
-var _ googletasksync.SyncStore = (*GoogleTasksStore)(nil)
+var _ googletasksync.SyncRepo = (*GoogleTasksRepo)(nil)
 
-type GoogleTasksStore struct {
+type GoogleTasksRepo struct {
 	db *sql.DB
 }
 
-func NewGoogleTasksStore(ctx context.Context, db *sql.DB) (*GoogleTasksStore, error) {
+func NewGoogleTasksRepo(ctx context.Context, db *sql.DB) (*GoogleTasksRepo, error) {
 	if db == nil {
-		return nil, fmt.Errorf("sqlite google tasks store: db is nil")
+		return nil, fmt.Errorf("google tasks repo: db is nil")
 	}
 
 	if _, err := db.ExecContext(ctx, createSyncedGoogleTasksTable); err != nil {
 		return nil, fmt.Errorf("create synced_google_tasks table: %w", err)
 	}
 
-	return &GoogleTasksStore{db: db}, nil
+	return &GoogleTasksRepo{db: db}, nil
 }
 
-func (s *GoogleTasksStore) IsProcessed(ctx context.Context, googleTaskID string) (bool, error) {
+func (r *GoogleTasksRepo) IsProcessed(ctx context.Context, googleTaskID string) (bool, error) {
 	var exists int
-	err := s.db.QueryRowContext(ctx, `
+	err := r.db.QueryRowContext(ctx, `
 SELECT 1
 FROM synced_google_tasks
 WHERE google_task_id = ?
@@ -54,8 +54,8 @@ LIMIT 1;`, googleTaskID).Scan(&exists)
 	return false, fmt.Errorf("check synced google task %s: %w", googleTaskID, err)
 }
 
-func (s *GoogleTasksStore) MarkProcessed(ctx context.Context, record googletasksync.SyncedTaskRecord) error {
-	_, err := s.db.ExecContext(ctx, `
+func (r *GoogleTasksRepo) SaveSyncedTask(ctx context.Context, record googletasksync.SyncedTaskRecord) error {
+	_, err := r.db.ExecContext(ctx, `
 INSERT OR IGNORE INTO synced_google_tasks (
   google_task_id,
   google_updated,
@@ -72,7 +72,7 @@ INSERT OR IGNORE INTO synced_google_tasks (
 		formatTime(record.SyncedAt),
 	)
 	if err != nil {
-		return fmt.Errorf("mark synced google task %s: %w", record.GoogleTaskID, err)
+		return fmt.Errorf("save synced google task %s: %w", record.GoogleTaskID, err)
 	}
 
 	return nil

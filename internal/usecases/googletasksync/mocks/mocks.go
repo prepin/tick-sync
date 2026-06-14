@@ -123,32 +123,32 @@ func (mr *MockTickTickClientMockRecorder) CreateInboxTask(ctx, task any) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateInboxTask", reflect.TypeOf((*MockTickTickClient)(nil).CreateInboxTask), ctx, task)
 }
 
-// MockSyncStore is a mock of SyncStore interface.
-type MockSyncStore struct {
+// MockSyncRepo is a mock of SyncRepo interface.
+type MockSyncRepo struct {
 	ctrl     *gomock.Controller
-	recorder *MockSyncStoreMockRecorder
+	recorder *MockSyncRepoMockRecorder
 	isgomock struct{}
 }
 
-// MockSyncStoreMockRecorder is the mock recorder for MockSyncStore.
-type MockSyncStoreMockRecorder struct {
-	mock *MockSyncStore
+// MockSyncRepoMockRecorder is the mock recorder for MockSyncRepo.
+type MockSyncRepoMockRecorder struct {
+	mock *MockSyncRepo
 }
 
-// NewMockSyncStore creates a new mock instance.
-func NewMockSyncStore(ctrl *gomock.Controller) *MockSyncStore {
-	mock := &MockSyncStore{ctrl: ctrl}
-	mock.recorder = &MockSyncStoreMockRecorder{mock}
+// NewMockSyncRepo creates a new mock instance.
+func NewMockSyncRepo(ctrl *gomock.Controller) *MockSyncRepo {
+	mock := &MockSyncRepo{ctrl: ctrl}
+	mock.recorder = &MockSyncRepoMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockSyncStore) EXPECT() *MockSyncStoreMockRecorder {
+func (m *MockSyncRepo) EXPECT() *MockSyncRepoMockRecorder {
 	return m.recorder
 }
 
 // IsProcessed mocks base method.
-func (m *MockSyncStore) IsProcessed(ctx context.Context, googleTaskID string) (bool, error) {
+func (m *MockSyncRepo) IsProcessed(ctx context.Context, googleTaskID string) (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsProcessed", ctx, googleTaskID)
 	ret0, _ := ret[0].(bool)
@@ -157,21 +157,21 @@ func (m *MockSyncStore) IsProcessed(ctx context.Context, googleTaskID string) (b
 }
 
 // IsProcessed indicates an expected call of IsProcessed.
-func (mr *MockSyncStoreMockRecorder) IsProcessed(ctx, googleTaskID any) *gomock.Call {
+func (mr *MockSyncRepoMockRecorder) IsProcessed(ctx, googleTaskID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsProcessed", reflect.TypeOf((*MockSyncStore)(nil).IsProcessed), ctx, googleTaskID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsProcessed", reflect.TypeOf((*MockSyncRepo)(nil).IsProcessed), ctx, googleTaskID)
 }
 
-// MarkProcessed mocks base method.
-func (m *MockSyncStore) MarkProcessed(ctx context.Context, record googletasksync.SyncedTaskRecord) error {
+// SaveSyncedTask mocks base method.
+func (m *MockSyncRepo) SaveSyncedTask(ctx context.Context, record googletasksync.SyncedTaskRecord) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkProcessed", ctx, record)
+	ret := m.ctrl.Call(m, "SaveSyncedTask", ctx, record)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// MarkProcessed indicates an expected call of MarkProcessed.
-func (mr *MockSyncStoreMockRecorder) MarkProcessed(ctx, record any) *gomock.Call {
+// SaveSyncedTask indicates an expected call of SaveSyncedTask.
+func (mr *MockSyncRepoMockRecorder) SaveSyncedTask(ctx, record any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkProcessed", reflect.TypeOf((*MockSyncStore)(nil).MarkProcessed), ctx, record)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveSyncedTask", reflect.TypeOf((*MockSyncRepo)(nil).SaveSyncedTask), ctx, record)
 }
