@@ -48,34 +48,11 @@ func New(ctx context.Context, cfg config.Config) (*Client, error) {
 }
 
 func (c *Client) ListUncompleted(ctx context.Context) ([]googletasksync.GoogleTask, error) {
-	tasks, err := c.ListUncompletedTasks(ctx, c.taskListID)
-	if err != nil {
-		return nil, err
-	}
-
-	mapped := make([]googletasksync.GoogleTask, 0, len(tasks))
-	for _, task := range tasks {
-		mapped = append(mapped, mapTask(task))
-	}
-
-	return mapped, nil
-}
-
-func (c *Client) Complete(ctx context.Context, taskID string) error {
-	_, err := c.service.Tasks.Patch(c.taskListID, taskID, &tasksapi.Task{Status: "completed"}).Context(ctx).Do()
-	return err
-}
-
-func (c *Client) Delete(ctx context.Context, taskID string) error {
-	return c.service.Tasks.Delete(c.taskListID, taskID).Context(ctx).Do()
-}
-
-func (c *Client) ListUncompletedTasks(ctx context.Context, taskListID string) ([]*tasksapi.Task, error) {
 	var tasks []*tasksapi.Task
 	pageToken := ""
 
 	for {
-		call := c.service.Tasks.List(taskListID).
+		call := c.service.Tasks.List(c.taskListID).
 			Context(ctx).
 			ShowCompleted(false).
 			ShowDeleted(false)
@@ -96,7 +73,21 @@ func (c *Client) ListUncompletedTasks(ctx context.Context, taskListID string) ([
 		pageToken = result.NextPageToken
 	}
 
-	return tasks, nil
+	mapped := make([]googletasksync.GoogleTask, 0, len(tasks))
+	for _, task := range tasks {
+		mapped = append(mapped, mapTask(task))
+	}
+
+	return mapped, nil
+}
+
+func (c *Client) Complete(ctx context.Context, taskID string) error {
+	_, err := c.service.Tasks.Patch(c.taskListID, taskID, &tasksapi.Task{Status: "completed"}).Context(ctx).Do()
+	return err
+}
+
+func (c *Client) Delete(ctx context.Context, taskID string) error {
+	return c.service.Tasks.Delete(c.taskListID, taskID).Context(ctx).Do()
 }
 
 func mapTask(task *tasksapi.Task) googletasksync.GoogleTask {
