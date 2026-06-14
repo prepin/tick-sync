@@ -19,7 +19,7 @@ func TestJobName(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
-	job := New(googletasksync.New(mocks.NewMockGoogleTasksClient(ctrl), mocks.NewMockTickTickClient(ctrl), mocks.NewMockSyncRepo(ctrl), ""), time.Minute)
+	job := New(googletasksync.New(mocks.NewMockGoogleTasksClient(ctrl), mocks.NewMockTickTickClient(ctrl), mocks.NewMockSyncRepo(ctrl), googletasksync.PostSyncActionComplete), time.Minute)
 	if got := job.Name(); got != "google-tasks-sync" {
 		t.Fatalf("unexpected name: %s", got)
 	}

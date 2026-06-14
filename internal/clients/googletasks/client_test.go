@@ -1,4 +1,4 @@
-package google
+package googletasks
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
 	"google.golang.org/api/option"
-	googletasks "google.golang.org/api/tasks/v1"
+	tasksapi "google.golang.org/api/tasks/v1"
 )
 
 // Maps the Google Tasks API response into domain tasks with all expected fields.
@@ -221,7 +221,7 @@ func TestListUncompletedReturnsErrorOnNon2xxResponse(t *testing.T) {
 // Maps a non-nil Google Tasks API task into a domain GoogleTask with all fields populated.
 func TestMapTaskMapsGoogleTaskFields(t *testing.T) {
 	t.Parallel()
-	task := &googletasks.Task{
+	task := &tasksapi.Task{
 		Id:      "google-1",
 		Title:   "Buy milk",
 		Notes:   "Remember lactose-free",
@@ -258,7 +258,7 @@ func TestMapTaskReturnsEmptyTaskForNilInput(t *testing.T) {
 func newTestClient(t *testing.T, ctx context.Context, endpoint string) *Client {
 	t.Helper()
 
-	service, err := googletasks.NewService(
+	service, err := tasksapi.NewService(
 		ctx,
 		option.WithEndpoint(endpoint),
 		option.WithoutAuthentication(),

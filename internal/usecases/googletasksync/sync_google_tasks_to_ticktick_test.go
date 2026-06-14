@@ -51,7 +51,7 @@ func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault
 		google,
 		ticktick,
 		repo,
-		"",
+		googletasksync.PostSyncActionComplete,
 		googletasksync.WithClock(func() time.Time { return syncedAt }),
 	)
 

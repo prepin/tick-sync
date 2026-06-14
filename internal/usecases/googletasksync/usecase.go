@@ -25,7 +25,7 @@ func New(google GoogleTasksClient, ticktick TickTickClient, repo SyncRepo, postS
 		google:         google,
 		ticktick:       ticktick,
 		repo:           repo,
-		postSyncAction: normalizePostSyncAction(postSyncAction),
+		postSyncAction: postSyncAction,
 		now:            time.Now,
 	}
 
@@ -34,12 +34,4 @@ func New(google GoogleTasksClient, ticktick TickTickClient, repo SyncRepo, postS
 	}
 
 	return uc
-}
-
-func normalizePostSyncAction(action PostSyncAction) PostSyncAction {
-	if action == "" {
-		return PostSyncActionComplete
-	}
-
-	return action
 }

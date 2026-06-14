@@ -9,7 +9,7 @@ import (
 	"os"
 	"strings"
 
-	googleclient "github.com/prepin/tick-sync/internal/clients/google"
+	gtasksclient "github.com/prepin/tick-sync/internal/clients/googletasks"
 	ticktickclient "github.com/prepin/tick-sync/internal/clients/ticktick"
 	"github.com/prepin/tick-sync/internal/config"
 	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
@@ -47,7 +47,7 @@ func main() {
 }
 
 func runList(ctx context.Context, cfg config.Config, out io.Writer) error {
-	client, err := googleclient.New(ctx, cfg)
+	client, err := gtasksclient.New(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("create google tasks client: %w", err)
 	}
@@ -73,7 +73,7 @@ func runSync(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("create google tasks repo: %w", err)
 	}
 
-	google, err := googleclient.New(ctx, cfg)
+	google, err := gtasksclient.New(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("create google tasks client: %w", err)
 	}

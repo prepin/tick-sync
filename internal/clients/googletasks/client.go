@@ -1,4 +1,4 @@
-package google
+package googletasks
 
 import (
 	"context"
@@ -8,13 +8,13 @@ import (
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
-	googletasks "google.golang.org/api/tasks/v1"
+	tasksapi "google.golang.org/api/tasks/v1"
 )
 
 var _ googletasksync.GoogleTasksClient = (*Client)(nil)
 
 type Client struct {
-	service    *googletasks.Service
+	service    *tasksapi.Service
 	taskListID string
 }
 
@@ -28,7 +28,7 @@ func New(ctx context.Context, cfg config.Config) (*Client, error) {
 			ClientID:     cfg.GoogleClientID,
 			ClientSecret: cfg.GoogleClientSecret,
 			Endpoint:     googleoauth.Endpoint,
-			Scopes:       []string{googletasks.TasksScope},
+			Scopes:       []string{tasksapi.TasksScope},
 		}
 
 		token := &oauth2.Token{
@@ -41,7 +41,7 @@ func New(ctx context.Context, cfg config.Config) (*Client, error) {
 		opts = append(opts, option.WithHTTPClient(oauthConfig.Client(ctx, token)))
 	}
 
-	service, err := googletasks.NewService(ctx, opts...)
+	service, err := tasksapi.NewService(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (c *Client) ListUncompleted(ctx context.Context) ([]googletasksync.GoogleTa
 }
 
 func (c *Client) Complete(ctx context.Context, taskID string) error {
-	_, err := c.service.Tasks.Patch(c.taskListID, taskID, &googletasks.Task{Status: "completed"}).Context(ctx).Do()
+	_, err := c.service.Tasks.Patch(c.taskListID, taskID, &tasksapi.Task{Status: "completed"}).Context(ctx).Do()
 	return err
 }
 
@@ -72,8 +72,8 @@ func (c *Client) Delete(ctx context.Context, taskID string) error {
 	return c.service.Tasks.Delete(c.taskListID, taskID).Context(ctx).Do()
 }
 
-func (c *Client) ListUncompletedTasks(ctx context.Context, taskListID string) ([]*googletasks.Task, error) {
-	var tasks []*googletasks.Task
+func (c *Client) ListUncompletedTasks(ctx context.Context, taskListID string) ([]*tasksapi.Task, error) {
+	var tasks []*tasksapi.Task
 	pageToken := ""
 
 	for {
@@ -101,7 +101,7 @@ func (c *Client) ListUncompletedTasks(ctx context.Context, taskListID string) ([
 	return tasks, nil
 }
 
-func mapTask(task *googletasks.Task) googletasksync.GoogleTask {
+func mapTask(task *tasksapi.Task) googletasksync.GoogleTask {
 	if task == nil {
 		return googletasksync.GoogleTask{}
 	}

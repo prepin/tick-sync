@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	googleclient "github.com/prepin/tick-sync/internal/clients/google"
+	gtasksclient "github.com/prepin/tick-sync/internal/clients/googletasks"
 	ticktickclient "github.com/prepin/tick-sync/internal/clients/ticktick"
 	"github.com/prepin/tick-sync/internal/config"
 	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
@@ -37,7 +37,7 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 		return nil, fmt.Errorf("create google tasks repo: %w", err)
 	}
 
-	google, err := googleclient.New(ctx, cfg)
+	google, err := gtasksclient.New(ctx, cfg)
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("create google tasks client: %w", err)
