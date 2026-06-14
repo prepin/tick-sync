@@ -19,6 +19,22 @@ CREATE TABLE IF NOT EXISTS synced_google_tasks (
   synced_at TEXT NOT NULL
 );`
 
+const querySelectSyncedTaskExists = `
+SELECT 1
+FROM synced_google_tasks
+WHERE google_task_id = ?
+LIMIT 1;`
+
+const queryInsertSyncedTask = `
+INSERT OR IGNORE INTO synced_google_tasks (
+  google_task_id,
+  google_updated,
+  google_title,
+  ticktick_task_id,
+  post_sync_action,
+  synced_at
+) VALUES (?, ?, ?, ?, ?, ?);`
+
 var _ googletasksync.SyncRepo = (*GoogleTasksRepo)(nil)
 
 type GoogleTasksRepo struct {
@@ -35,47 +51,6 @@ func NewGoogleTasksRepo(ctx context.Context, db *sql.DB) (*GoogleTasksRepo, erro
 	}
 
 	return &GoogleTasksRepo{db: db}, nil
-}
-
-func (r *GoogleTasksRepo) IsProcessed(ctx context.Context, googleTaskID string) (bool, error) {
-	var exists int
-	err := r.db.QueryRowContext(ctx, `
-SELECT 1
-FROM synced_google_tasks
-WHERE google_task_id = ?
-LIMIT 1;`, googleTaskID).Scan(&exists)
-	if err == nil {
-		return true, nil
-	}
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
-
-	return false, fmt.Errorf("check synced google task %s: %w", googleTaskID, err)
-}
-
-func (r *GoogleTasksRepo) SaveSyncedTask(ctx context.Context, record googletasksync.SyncedTaskRecord) error {
-	_, err := r.db.ExecContext(ctx, `
-INSERT OR IGNORE INTO synced_google_tasks (
-  google_task_id,
-  google_updated,
-  google_title,
-  ticktick_task_id,
-  post_sync_action,
-  synced_at
-) VALUES (?, ?, ?, ?, ?, ?);`,
-		record.GoogleTaskID,
-		record.GoogleUpdated,
-		record.GoogleTitle,
-		record.TickTickTaskID,
-		string(record.PostSyncAction),
-		formatTime(record.SyncedAt),
-	)
-	if err != nil {
-		return fmt.Errorf("save synced google task %s: %w", record.GoogleTaskID, err)
-	}
-
-	return nil
 }
 
 func formatTime(value time.Time) string {
