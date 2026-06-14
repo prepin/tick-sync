@@ -84,7 +84,7 @@ func (c *Client) createTaskRequest(task googletasksync.TickTickTaskInput) (creat
 
 	if hasDueDate {
 		request.DueDate = dueDate
-		request.IsAllDay = boolPtr(true)
+		request.IsAllDay = new(true)
 	}
 
 	return request, nil

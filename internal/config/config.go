@@ -1,6 +1,7 @@
 package config
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -34,10 +35,7 @@ type Config struct {
 func Load() (Config, error) {
 	_ = godotenv.Load()
 
-	rawAction := env("GOOGLE_POST_SYNC_ACTION")
-	if rawAction == "" {
-		rawAction = "complete"
-	}
+	rawAction := cmp.Or(env("GOOGLE_POST_SYNC_ACTION"), "complete")
 
 	var postSyncAction consts.PostSyncAction
 	switch rawAction {
@@ -50,40 +48,25 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		DBPath:               env("DB_PATH"),
+		DBPath:               cmp.Or(env("DB_PATH"), "./tick-sync.db"),
 		GooglePostSyncAction: postSyncAction,
 		GoogleClientID:       env("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret:   env("GOOGLE_CLIENT_SECRET"),
 		GoogleAccessToken:    env("GOOGLE_ACCESS_TOKEN"),
 		GoogleRefreshToken:   env("GOOGLE_REFRESH_TOKEN"),
-		GoogleTokenType:      env("GOOGLE_TOKEN_TYPE"),
-		GoogleTaskListID:     env("GOOGLE_TASKLIST_ID"),
+		GoogleTokenType:      cmp.Or(env("GOOGLE_TOKEN_TYPE"), "Bearer"),
+		GoogleTaskListID:     cmp.Or(env("GOOGLE_TASKLIST_ID"), "@default"),
 		TickTickAccessToken:  env("TICKTICK_ACCESS_TOKEN"),
-		TickTickAPIBaseURL:   env("TICKTICK_API_BASE_URL"),
-		TickTickTimeZone:     env("TICKTICK_TIME_ZONE"),
+		TickTickAPIBaseURL:   cmp.Or(env("TICKTICK_API_BASE_URL"), "https://api.ticktick.com/open/v1"),
+		TickTickTimeZone:     cmp.Or(env("TICKTICK_TIME_ZONE"), "UTC"),
 		TickTickProjectID:    env("TICKTICK_PROJECT_ID"),
 	}
 
-	if cfg.GoogleTokenType == "" {
-		cfg.GoogleTokenType = "Bearer"
-	}
-	if cfg.DBPath == "" {
-		cfg.DBPath = "./tick-sync.db"
-	}
 	pollInterval, err := parsePollInterval(env("POLL_INTERVAL"))
 	if err != nil {
 		return Config{}, err
 	}
 	cfg.PollInterval = pollInterval
-	if cfg.GoogleTaskListID == "" {
-		cfg.GoogleTaskListID = "@default"
-	}
-	if cfg.TickTickAPIBaseURL == "" {
-		cfg.TickTickAPIBaseURL = "https://api.ticktick.com/open/v1"
-	}
-	if cfg.TickTickTimeZone == "" {
-		cfg.TickTickTimeZone = "UTC"
-	}
 
 	expiry, err := parseTokenExpiry(env("GOOGLE_TOKEN_EXPIRY"))
 	if err != nil {

@@ -15,7 +15,7 @@ import (
 // Creates the synced_google_tasks table in the database.
 func TestNewGoogleTasksRepoCreatesTable(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := openTestDB(t)
 
 	_, err := NewGoogleTasksRepo(ctx, db)
@@ -39,7 +39,7 @@ WHERE type = 'table' AND name = 'synced_google_tasks';`).Scan(&tableName)
 // Does not create a repo when the database handle is nil.
 func TestNewGoogleTasksRepoRejectsNilDB(t *testing.T) {
 	t.Parallel()
-	_, err := NewGoogleTasksRepo(context.Background(), nil)
+	_, err := NewGoogleTasksRepo(t.Context(), nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -48,7 +48,7 @@ func TestNewGoogleTasksRepoRejectsNilDB(t *testing.T) {
 // Does not create a repo when the database is closed and table creation fails.
 func TestNewGoogleTasksRepoReturnsErrorWhenTableCreationFails(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := openTestDB(t)
 	if err := db.Close(); err != nil {
 		t.Fatalf("close db: %v", err)
@@ -66,7 +66,7 @@ func TestNewGoogleTasksRepoReturnsErrorWhenTableCreationFails(t *testing.T) {
 // Returns false for a Google Task ID that has never been stored.
 func TestGoogleTasksRepoIsProcessedReturnsFalseForUnknownTask(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := newTestRepo(t, ctx)
 
 	processed, err := repo.IsProcessed(ctx, "google-1")
@@ -81,7 +81,7 @@ func TestGoogleTasksRepoIsProcessedReturnsFalseForUnknownTask(t *testing.T) {
 // Reports an error when IsProcessed cannot query the database.
 func TestGoogleTasksRepoIsProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := newTestRepo(t, ctx)
 	if err := repo.db.Close(); err != nil {
 		t.Fatalf("close db: %v", err)
@@ -99,7 +99,7 @@ func TestGoogleTasksRepoIsProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T
 // Records a synced task and returns true for subsequent IsProcessed checks.
 func TestGoogleTasksRepoSaveSyncedTaskRecordsTask(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := newTestRepo(t, ctx)
 
 	if err := repo.SaveSyncedTask(ctx, syncedTaskRecord()); err != nil {
@@ -118,7 +118,7 @@ func TestGoogleTasksRepoSaveSyncedTaskRecordsTask(t *testing.T) {
 // Stores all record fields (updated, title, ticktick ID, action, synced at) in the database.
 func TestGoogleTasksRepoSaveSyncedTaskStoresRecordFields(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := openTestDB(t)
 	repo, err := NewGoogleTasksRepo(ctx, db)
 	if err != nil {
@@ -163,7 +163,7 @@ WHERE google_task_id = ?;`, record.GoogleTaskID).Scan(
 // Does not insert duplicate rows when the same record is saved twice.
 func TestGoogleTasksRepoSaveSyncedTaskIsIdempotent(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	db := openTestDB(t)
 	repo, err := NewGoogleTasksRepo(ctx, db)
 	if err != nil {
@@ -190,7 +190,7 @@ func TestGoogleTasksRepoSaveSyncedTaskIsIdempotent(t *testing.T) {
 // Reports an error when SaveSyncedTask cannot write to the database.
 func TestGoogleTasksRepoSaveSyncedTaskReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	repo := newTestRepo(t, ctx)
 	if err := repo.db.Close(); err != nil {
 		t.Fatalf("close db: %v", err)

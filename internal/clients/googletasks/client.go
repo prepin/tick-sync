@@ -73,9 +73,9 @@ func (c *Client) ListUncompleted(ctx context.Context) ([]googletasksync.GoogleTa
 		pageToken = result.NextPageToken
 	}
 
-	mapped := make([]googletasksync.GoogleTask, 0, len(tasks))
-	for _, task := range tasks {
-		mapped = append(mapped, mapTask(task))
+	mapped := make([]googletasksync.GoogleTask, len(tasks))
+	for i, task := range tasks {
+		mapped[i] = mapTask(task)
 	}
 
 	return mapped, nil

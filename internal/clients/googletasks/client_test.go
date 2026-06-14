@@ -16,7 +16,7 @@ import (
 // Maps the Google Tasks API response into domain tasks with all expected fields.
 func TestListUncompletedMapsGoogleTasksFromAPI(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Fatalf("unexpected method: %s", r.Method)
@@ -71,7 +71,7 @@ func TestListUncompletedMapsGoogleTasksFromAPI(t *testing.T) {
 // Patches the Google Task status to "completed" via the Tasks API.
 func TestCompletePatchesGoogleTaskStatus(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPatch {
 			t.Fatalf("unexpected method: %s", r.Method)
@@ -103,7 +103,7 @@ func TestCompletePatchesGoogleTaskStatus(t *testing.T) {
 // Reports an error when the PATCH request to complete a task responds with a non-2xx status.
 func TestCompleteReportsErrorOnNon2xxResponse(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "task not found", http.StatusNotFound)
 	}))
@@ -118,7 +118,7 @@ func TestCompleteReportsErrorOnNon2xxResponse(t *testing.T) {
 // Sends a DELETE request to the Tasks API for the specified task.
 func TestDeleteDeletesGoogleTask(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
 			t.Fatalf("unexpected method: %s", r.Method)
@@ -140,7 +140,7 @@ func TestDeleteDeletesGoogleTask(t *testing.T) {
 // Reports an error when the DELETE request responds with a non-2xx status.
 func TestDeleteReportsErrorOnNon2xxResponse(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}))
@@ -155,7 +155,7 @@ func TestDeleteReportsErrorOnNon2xxResponse(t *testing.T) {
 // Collects all tasks from every page when the API paginates the response.
 func TestListUncompletedCollectsTasksAcrossPages(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	page := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		page++
@@ -205,7 +205,7 @@ func TestListUncompletedCollectsTasksAcrossPages(t *testing.T) {
 // Does not return any tasks when the API responds with a non-2xx status code.
 func TestListUncompletedReturnsErrorOnNon2xxResponse(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}))

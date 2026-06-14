@@ -1,7 +1,6 @@
 package googletasksync_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -13,7 +12,7 @@ import (
 
 // Syncs a single unprocessed Google Task to TickTick, saves the record, and completes it on Google.
 func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctrl := gomock.NewController(t)
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
@@ -66,7 +65,7 @@ func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault
 
 // Deletes the Google task instead of completing it when the post-sync action is set to "delete".
 func TestUsecaseSyncGoogleTasksToTickTickDeletesTaskWhenConfigured(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctrl := gomock.NewController(t)
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
@@ -92,7 +91,7 @@ func TestUsecaseSyncGoogleTasksToTickTickDeletesTaskWhenConfigured(t *testing.T)
 
 // Skips a task that was already synced in a previous run and does not create a TickTick task for it.
 func TestUsecaseSyncGoogleTasksToTickTickSkipsAlreadyProcessedTask(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctrl := gomock.NewController(t)
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
@@ -113,7 +112,7 @@ func TestUsecaseSyncGoogleTasksToTickTickSkipsAlreadyProcessedTask(t *testing.T)
 
 // Does not save a record or complete the task on Google when the TickTick API call fails.
 func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenTickTickCreationFails(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctrl := gomock.NewController(t)
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
@@ -136,7 +135,7 @@ func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenTickTickCreation
 
 // Does not complete the Google task when the synced record cannot be saved to the repo.
 func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenRepoRecordFails(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctrl := gomock.NewController(t)
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
@@ -160,7 +159,7 @@ func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenRepoRecordFails(
 
 // Continues syncing remaining tasks after a per-task error, reporting both successes and the failure in the summary.
 func TestUsecaseSyncGoogleTasksToTickTickContinuesAfterPerTaskError(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctrl := gomock.NewController(t)
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)
@@ -195,7 +194,7 @@ func TestUsecaseSyncGoogleTasksToTickTickContinuesAfterPerTaskError(t *testing.T
 
 // Returns an empty summary and an error when the Google Tasks API itself is unavailable.
 func TestUsecaseSyncGoogleTasksToTickTickReturnsListError(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	ctrl := gomock.NewController(t)
 
 	google := mocks.NewMockGoogleTasksClient(ctrl)

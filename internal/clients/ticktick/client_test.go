@@ -1,7 +1,6 @@
 package ticktick
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -53,7 +52,7 @@ func TestNewRejectsRelativeBaseURL(t *testing.T) {
 // Posts a task to TickTick without a projectId and returns the created task ID.
 func TestCreateInboxTaskPostsTaskWithoutProjectID(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Fatalf("unexpected method: %s", r.Method)
@@ -104,7 +103,7 @@ func TestCreateInboxTaskPostsTaskWithoutProjectID(t *testing.T) {
 // Includes the projectId field in the request body when the client is configured with a project ID.
 func TestCreateInboxTaskIncludesProjectIDWhenConfigured(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -124,7 +123,7 @@ func TestCreateInboxTaskIncludesProjectIDWhenConfigured(t *testing.T) {
 // Omits the dueDate and isAllDay fields when the task input has no due date.
 func TestCreateInboxTaskOmitsDueDateWhenMissing(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var body map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -149,7 +148,7 @@ func TestCreateInboxTaskOmitsDueDateWhenMissing(t *testing.T) {
 // Does not create an inbox task when the TickTick API responds with a 4xx error and body.
 func TestCreateInboxTaskReturnsNon2xxErrorWithBody(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"projectId required"}`, http.StatusBadRequest)
 	}))
@@ -168,7 +167,7 @@ func TestCreateInboxTaskReturnsNon2xxErrorWithBody(t *testing.T) {
 // Does not create an inbox task when the API response body is not valid JSON.
 func TestCreateInboxTaskReturnsInvalidJSONError(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("not-json"))
 	}))
@@ -187,7 +186,7 @@ func TestCreateInboxTaskReturnsInvalidJSONError(t *testing.T) {
 // Does not create an inbox task when the API response is missing the task ID.
 func TestCreateInboxTaskReturnsMissingIDError(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(t, w, map[string]string{"title": "Buy milk"})
 	}))
@@ -207,7 +206,7 @@ func TestCreateInboxTaskReturnsMissingIDError(t *testing.T) {
 func TestCreateInboxTaskReturnsInvalidDueDateError(t *testing.T) {
 	t.Parallel()
 	client := newTestClient(t, "https://example.com", "")
-	_, err := client.CreateInboxTask(context.Background(), googletasksync.TickTickTaskInput{
+	_, err := client.CreateInboxTask(t.Context(), googletasksync.TickTickTaskInput{
 		Title: "Buy milk",
 		Due:   "tomorrow",
 	})

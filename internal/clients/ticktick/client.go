@@ -1,6 +1,7 @@
 package ticktick
 
 import (
+	"cmp"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,10 +41,7 @@ func New(cfg config.Config, opts ...Option) (*Client, error) {
 		return nil, fmt.Errorf("missing required environment variable: TICKTICK_ACCESS_TOKEN")
 	}
 
-	apiBaseURL := cfg.TickTickAPIBaseURL
-	if apiBaseURL == "" {
-		apiBaseURL = defaultAPIBaseURL
-	}
+	apiBaseURL := cmp.Or(cfg.TickTickAPIBaseURL, defaultAPIBaseURL)
 
 	parsedBaseURL, err := url.Parse(apiBaseURL)
 	if err != nil {
@@ -57,12 +55,8 @@ func New(cfg config.Config, opts ...Option) (*Client, error) {
 		httpClient: http.DefaultClient,
 		baseURL:    apiBaseURL,
 		token:      cfg.TickTickAccessToken,
-		timeZone:   cfg.TickTickTimeZone,
+		timeZone:   cmp.Or(cfg.TickTickTimeZone, defaultTimeZone),
 		projectID:  cfg.TickTickProjectID,
-	}
-
-	if client.timeZone == "" {
-		client.timeZone = defaultTimeZone
 	}
 
 	for _, opt := range opts {
@@ -83,10 +77,6 @@ func formatDueDate(value string) (string, bool, error) {
 	}
 
 	return parsed.Format("2006-01-02T15:04:05-0700"), true, nil
-}
-
-func boolPtr(value bool) *bool {
-	return &value
 }
 
 func readErrorBody(body io.Reader) string {

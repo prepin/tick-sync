@@ -40,7 +40,7 @@ func TestJobStartExecutesSyncAndStopsOnCancel(t *testing.T) {
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := New(uc, time.Minute)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	job.Start(ctx)
 	cancel()
 	time.Sleep(50 * time.Millisecond)
@@ -60,7 +60,7 @@ func TestJobStartDoesNotEnterTickerLoopOnExecuteFailure(t *testing.T) {
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := New(uc, time.Minute)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	job.Start(ctx)
 	time.Sleep(50 * time.Millisecond)
 	cancel()
@@ -81,7 +81,7 @@ func TestJobExecuteReportsSuccess(t *testing.T) {
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := New(uc, time.Minute)
 
-	if err := job.Execute(context.Background()); err != nil {
+	if err := job.Execute(t.Context()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -103,7 +103,7 @@ func TestJobExecuteLogsSummaryWithJobName(t *testing.T) {
 
 	buf := captureSlogOutput(t)
 
-	if err := job.Execute(context.Background()); err != nil {
+	if err := job.Execute(t.Context()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -138,7 +138,7 @@ func TestJobExecuteLogsErrorsAtErrorLevel(t *testing.T) {
 
 	buf := captureSlogOutput(t)
 
-	_ = job.Execute(context.Background())
+	_ = job.Execute(t.Context())
 
 	got := buf.String()
 	if !strings.Contains(got, `job=google-tasks-sync`) {

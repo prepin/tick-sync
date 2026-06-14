@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -89,7 +88,7 @@ func TestPrintTasksPrintsNotesLabelWithoutContentWhenEmpty(t *testing.T) {
 // Lists uncompleted Google Tasks and prints their fields to the output writer.
 func TestRunListPrintsTasksFromGoogleAPI(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
@@ -122,7 +121,7 @@ func TestRunListPrintsTasksFromGoogleAPI(t *testing.T) {
 // Returns an error when the Google Tasks API responds with a non-2xx status.
 func TestRunListReturnsErrorOnGoogleAPIFailure(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}))
@@ -145,7 +144,7 @@ func TestRunListReturnsErrorOnGoogleAPIFailure(t *testing.T) {
 // Runs a full sync cycle through the Google and TickTick mock APIs and reports success.
 func TestRunSyncCompletesSyncCycle(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 
 	googleServer, ticktickServer := testutil.StartMockServers(t)
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
@@ -166,7 +165,7 @@ func TestRunSyncCompletesSyncCycle(t *testing.T) {
 // Propagates the sync error when the TickTick API is unavailable.
 func TestRunSyncReturnsErrorOnTickTickAPIFailure(t *testing.T) {
 	t.Parallel()
-	ctx := context.Background()
+	ctx := t.Context()
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 
 	ticktickServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

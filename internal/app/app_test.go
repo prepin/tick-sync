@@ -13,7 +13,7 @@ import (
 
 // Does not create an app when the database path is a directory or unwritable.
 func TestNewRejectsDBOpenFailure(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	dir := t.TempDir()
 	cfg := config.Config{
 		DBPath:              dir,
@@ -31,7 +31,7 @@ func TestNewRejectsDBOpenFailure(t *testing.T) {
 
 // Does not create an app when the TickTick access token is missing.
 func TestNewRejectsMissingTickTickAccessToken(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 	cfg := config.Config{
 		DBPath:              dbPath,
@@ -62,7 +62,7 @@ func TestAppRunStopsOnContextCancel(t *testing.T) {
 		PollInterval:        time.Minute,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
 
 	app, err := New(ctx, cfg)
@@ -90,7 +90,7 @@ func TestAppClose(t *testing.T) {
 		PollInterval:        time.Minute,
 	}
 
-	app, err := New(context.Background(), cfg)
+	app, err := New(t.Context(), cfg)
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
