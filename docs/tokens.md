@@ -1,6 +1,6 @@
 # Google Tasks Token Setup
 
-The first CLI iteration does not run an OAuth browser flow and does not read separate secret files.
+The first iteration does not run an OAuth browser flow and does not read separate secret files.
 
 All Google OAuth values are provided through environment variables or a local `.env` file.
 
@@ -54,7 +54,7 @@ Required variables:
 
 Optional variables:
 
-- `GOOGLE_ACCESS_TOKEN`, optional because the CLI can refresh from `GOOGLE_REFRESH_TOKEN`
+- `GOOGLE_ACCESS_TOKEN`, optional because the service can refresh from `GOOGLE_REFRESH_TOKEN`
 - `GOOGLE_TOKEN_TYPE`, defaults to `Bearer`
 - `GOOGLE_TOKEN_EXPIRY`, defaults to an already-expired time so the token refreshes immediately
 - `GOOGLE_TASKLIST_ID`, defaults to `@default`
@@ -63,7 +63,7 @@ Optional variables:
 
 Use an external OAuth tool to obtain an access token and refresh token for the Google Tasks scope.
 
-The CLI expects tokens as environment variables, not as JSON files.
+The service expects tokens as environment variables, not as JSON files.
 
 One practical approach is to use [OAuth 2.0 Playground](https://developers.google.com/oauthplayground/).
 
@@ -111,7 +111,7 @@ If OAuth Playground shows an expiry timestamp, set `GOOGLE_TOKEN_EXPIRY` as an R
 GOOGLE_TOKEN_EXPIRY=2026-06-10T12:00:00Z
 ```
 
-If you only see `expires_in`, you can omit `GOOGLE_TOKEN_EXPIRY`. The CLI treats a missing expiry as already expired and refreshes immediately using `GOOGLE_REFRESH_TOKEN`.
+If you only see `expires_in`, you can omit `GOOGLE_TOKEN_EXPIRY`. The service treats a missing expiry as already expired and refreshes immediately using `GOOGLE_REFRESH_TOKEN`.
 
 ## Missing Refresh Token
 
@@ -136,7 +136,7 @@ For apps in `Testing` publishing status:
 4. Save the consent screen changes.
 5. Retry authorization in OAuth Playground.
 
-If you do not want to manage test users, publish the app to production. For this personal CLI, keeping the app in testing and adding yourself as a test user is usually simpler.
+If you do not want to manage test users, publish the app to production. For this personal tool, keeping the app in testing and adding yourself as a test user is usually simpler.
 
 Also confirm that OAuth Playground is using the same OAuth client ID from the project where the Google Tasks API is enabled and the consent screen is configured.
 
@@ -156,15 +156,15 @@ Check the following:
 
 The `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` must be the same pair used to generate the access and refresh tokens.
 
-## Running The CLI
+## Running The Service
 
 ```sh
-go run ./cmd/cli
+go run ./cmd/app
 ```
 
-The command prints uncompleted tasks from the configured Google task list and exits.
+The command starts the long-running sync service. It syncs Google Tasks to TickTick on startup and then on every `POLL_INTERVAL`.
 
-For TickTick token setup, see [`docs/ticktick.md`](ticktick.md). For sync command usage, see [`docs/sync.md`](sync.md).
+For TickTick token setup, see [`docs/ticktick.md`](ticktick.md). For sync details, see [`docs/sync.md`](sync.md).
 
 ## Security
 

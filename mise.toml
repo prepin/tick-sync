@@ -13,14 +13,6 @@ run = "go test ./... -coverprofile=/tmp/tick-sync-coverage.out && go tool cover 
 description = "Generate Go mocks"
 run = "go generate ./..."
 
-[tasks.cli]
-description = "Run read-only Google task listing"
-run = "go run ./cmd/cli"
-
-[tasks.sync]
-description = "Run one Google Tasks to TickTick sync"
-run = "go run ./cmd/cli sync"
-
 [tasks.service]
 description = "Run polling sync service"
 run = "go run ./cmd/app"
