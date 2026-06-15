@@ -2,13 +2,19 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/prepin/tick-sync/internal/config"
-	"github.com/prepin/tick-sync/internal/testutil"
+	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
+	googletaskssyncjob "github.com/prepin/tick-sync/internal/jobs/googletaskssync"
+	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecases/googletasksync/mocks"
+	"go.uber.org/mock/gomock"
+	_ "modernc.org/sqlite"
 )
 
 // Does not create an app when the database path is a directory or unwritable.
@@ -50,52 +56,54 @@ func TestNewRejectsMissingTickTickAccessToken(t *testing.T) {
 
 // Runs the sync job once and returns nil when the context is cancelled after the first execution.
 func TestAppRunStopsOnContextCancel(t *testing.T) {
-	googleServer, ticktickServer := testutil.StartMockServers(t)
+	ctrl := gomock.NewController(t)
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 
-	cfg := config.Config{
-		DBPath:              dbPath,
-		GoogleAPIEndpoint:   googleServer.URL + "/",
-		GoogleTaskListID:    "@default",
-		TickTickAPIBaseURL:  ticktickServer.URL,
-		TickTickAccessToken: "test-token",
-		PollInterval:        time.Minute,
+	db, err := sql.Open("sqlite", dbPath)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer db.Close()
+
+	repo, err := googletasksrepo.NewGoogleTasksRepo(t.Context(), db)
+	if err != nil {
+		t.Fatalf("new repo: %v", err)
 	}
 
+	google := mocks.NewMockGoogleTasksClient(ctrl)
+	ticktick := mocks.NewMockTickTickClient(ctrl)
+
+	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
+
+	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
+	job := googletaskssyncjob.New(uc, time.Minute)
+
+	cfg := config.Config{DBPath: dbPath, PollInterval: time.Minute}
 	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
 
-	app, err := New(ctx, cfg)
+	application, err := New(ctx, cfg, WithJobs([]Runner{job}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
-	t.Cleanup(func() { app.Close() })
+	t.Cleanup(func() { application.Close() })
 
-	if err := app.Run(ctx); err != nil {
+	if err := application.Run(ctx); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 // Closes the database handle and returns nil when the app has a valid DB connection.
 func TestAppClose(t *testing.T) {
-	googleServer, ticktickServer := testutil.StartMockServers(t)
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
+	cfg := config.Config{DBPath: dbPath}
 
-	cfg := config.Config{
-		DBPath:              dbPath,
-		GoogleAPIEndpoint:   googleServer.URL + "/",
-		GoogleTaskListID:    "@default",
-		TickTickAPIBaseURL:  ticktickServer.URL,
-		TickTickAccessToken: "test-token",
-		PollInterval:        time.Minute,
-	}
-
-	app, err := New(t.Context(), cfg)
+	application, err := New(t.Context(), cfg, WithJobs([]Runner{}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
 
-	if err := app.Close(); err != nil {
+	if err := application.Close(); err != nil {
 		t.Fatalf("close: %v", err)
 	}
 }

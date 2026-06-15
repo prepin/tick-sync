@@ -19,16 +19,33 @@ type Runner interface {
 	Start(ctx context.Context)
 }
 
+type Option func(*App)
+
 type App struct {
 	cfg  config.Config
 	db   *sql.DB
 	jobs []Runner
 }
 
-func New(ctx context.Context, cfg config.Config) (*App, error) {
+func WithJobs(jobs []Runner) Option {
+	return func(a *App) {
+		a.jobs = jobs
+	}
+}
+
+func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	db, err := sql.Open("sqlite", cfg.DBPath)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite db: %w", err)
+	}
+
+	a := &App{cfg: cfg, db: db}
+	for _, opt := range opts {
+		opt(a)
+	}
+
+	if a.jobs != nil {
+		return a, nil
 	}
 
 	repo, err := googletasksrepo.NewGoogleTasksRepo(ctx, db)
@@ -50,13 +67,9 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 	}
 
 	uc := usecase.New(google, ticktick, repo, cfg.GooglePostSyncAction)
-	job := googletaskssyncjob.New(uc, cfg.PollInterval)
+	a.jobs = []Runner{googletaskssyncjob.New(uc, cfg.PollInterval)}
 
-	return &App{
-		cfg:  cfg,
-		db:   db,
-		jobs: []Runner{job},
-	}, nil
+	return a, nil
 }
 
 func (a *App) Run(ctx context.Context) error {
