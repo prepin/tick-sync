@@ -23,14 +23,22 @@ type JobsRunner interface {
 type Option func(*App)
 
 type App struct {
-	cfg  config.Config
-	db   *sql.DB
-	jobs []JobsRunner
+	cfg    config.Config
+	db     *sql.DB
+	jobs   []JobsRunner
+	logger *slog.Logger
 }
 
 func WithJobs(jobs []JobsRunner) Option {
 	return func(a *App) {
 		a.jobs = jobs
+	}
+}
+
+// WithLogger configures the logger used by the app.
+func WithLogger(logger *slog.Logger) Option {
+	return func(a *App) {
+		a.logger = logger
 	}
 }
 
@@ -40,7 +48,7 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		return nil, fmt.Errorf("open sqlite db: %w", err)
 	}
 
-	a := &App{cfg: cfg, db: db}
+	a := &App{cfg: cfg, db: db, logger: slog.New(slog.DiscardHandler)}
 	for _, opt := range opts {
 		opt(a)
 	}
@@ -68,20 +76,20 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	}
 
 	uc := googletasksync.New(google, ticktick, repo, cfg.GooglePostSyncAction)
-	a.jobs = []JobsRunner{googletasksyncjob.New(uc, cfg.PollInterval)}
+	a.jobs = []JobsRunner{googletasksyncjob.New(uc, cfg.PollInterval, googletasksyncjob.WithLogger(a.logger))}
 
 	return a, nil
 }
 
 func (a *App) Run(ctx context.Context) error {
-	slog.InfoContext(ctx, "sync service started", "poll_interval", a.cfg.PollInterval)
+	a.logger.InfoContext(ctx, "sync service started", "poll_interval", a.cfg.PollInterval)
 
 	for _, job := range a.jobs {
 		job.Start(ctx)
 	}
 
 	<-ctx.Done()
-	slog.InfoContext(ctx, "shutdown requested")
+	a.logger.InfoContext(ctx, "shutdown requested")
 	return nil
 }
 

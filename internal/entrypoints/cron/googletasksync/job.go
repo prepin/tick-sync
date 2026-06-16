@@ -14,11 +14,30 @@ import (
 type Job struct {
 	usecase  *googletasksync.SyncGoogleTasksToTickTickUseCase
 	interval time.Duration
+	logger   *slog.Logger
+}
+
+// JobOption configures a Job.
+type JobOption func(*Job)
+
+// WithLogger configures the logger used by the job.
+func WithLogger(logger *slog.Logger) JobOption {
+	return func(j *Job) {
+		j.logger = logger
+	}
 }
 
 // New creates a sync job.
-func New(usecase *googletasksync.SyncGoogleTasksToTickTickUseCase, interval time.Duration) *Job {
-	return &Job{usecase: usecase, interval: interval}
+func New(usecase *googletasksync.SyncGoogleTasksToTickTickUseCase, interval time.Duration, opts ...JobOption) *Job {
+	j := &Job{
+		usecase:  usecase,
+		interval: interval,
+		logger:   slog.New(slog.DiscardHandler),
+	}
+	for _, opt := range opts {
+		opt(j)
+	}
+	return j
 }
 
 // Name returns the job identifier.
@@ -32,10 +51,10 @@ func (j *Job) Start(ctx context.Context) {
 }
 
 func (j *Job) run(ctx context.Context) {
-	slog.InfoContext(ctx, "job started", "job", j.Name())
+	j.logger.InfoContext(ctx, "job started", "job", j.Name())
 
 	if err := j.Execute(ctx); err != nil {
-		slog.ErrorContext(ctx, "job initial sync failed", "job", j.Name(), "error", err)
+		j.logger.ErrorContext(ctx, "job initial sync failed", "job", j.Name(), "error", err)
 		return
 	}
 
@@ -45,11 +64,11 @@ func (j *Job) run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.InfoContext(ctx, "job shutting down", "job", j.Name())
+			j.logger.InfoContext(ctx, "job shutting down", "job", j.Name())
 			return
 		case <-ticker.C:
 			if err := j.Execute(ctx); err != nil {
-				slog.ErrorContext(ctx, "job sync failed", "job", j.Name(), "error", err)
+				j.logger.ErrorContext(ctx, "job sync failed", "job", j.Name(), "error", err)
 			}
 		}
 	}
@@ -58,14 +77,14 @@ func (j *Job) run(ctx context.Context) {
 // Execute runs one sync cycle.
 func (j *Job) Execute(ctx context.Context) error {
 	result, syncErr := j.usecase.Handle(ctx)
-	j.logSyncResult(result)
+	j.logSyncResult(ctx, result)
 	if syncErr != nil {
 		return fmt.Errorf("sync google tasks to ticktick: %w", syncErr)
 	}
 	return nil
 }
 
-func (j *Job) logSyncResult(result googletasksync.SyncGoogleTasksToTickTickResult) {
+func (j *Job) logSyncResult(ctx context.Context, result googletasksync.SyncGoogleTasksToTickTickResult) {
 	attrs := []slog.Attr{
 		slog.String("job", j.Name()),
 		slog.Int("seen", result.Seen),
@@ -89,8 +108,8 @@ func (j *Job) logSyncResult(result googletasksync.SyncGoogleTasksToTickTickResul
 	}
 
 	if result.Failed > 0 || len(result.Errors) > 0 {
-		slog.LogAttrs(context.Background(), slog.LevelError, "sync finished", attrs...)
+		j.logger.LogAttrs(ctx, slog.LevelError, "sync finished", attrs...)
 	} else {
-		slog.LogAttrs(context.Background(), slog.LevelInfo, "sync finished", attrs...)
+		j.logger.LogAttrs(ctx, slog.LevelInfo, "sync finished", attrs...)
 	}
 }

@@ -111,9 +111,8 @@ func TestJobExecuteLogsResultWithJobName(t *testing.T) {
 	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
-	job := cron.New(uc, time.Minute)
-
-	buf := captureSlogOutput(t)
+	buf, logger := newTestLogger(t)
+	job := cron.New(uc, time.Minute, cron.WithLogger(logger))
 
 	if err := job.Execute(t.Context()); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -147,9 +146,8 @@ func TestJobExecuteLogsErrorsAtErrorLevel(t *testing.T) {
 	ticktick.EXPECT().CreateInboxTask(gomock.Any(), gomock.Any()).Return(googletasksync.TickTickTaskView{}, createErr)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
-	job := cron.New(uc, time.Minute)
-
-	buf := captureSlogOutput(t)
+	buf, logger := newTestLogger(t)
+	job := cron.New(uc, time.Minute, cron.WithLogger(logger))
 
 	_ = job.Execute(t.Context())
 
@@ -165,15 +163,12 @@ func TestJobExecuteLogsErrorsAtErrorLevel(t *testing.T) {
 	}
 }
 
-// Captures slog output into a byte buffer for assertion in tests, restoring the previous default handler after the test.
-func captureSlogOutput(t *testing.T) *bytes.Buffer {
+// newTestLogger returns a logger writing to a byte buffer for assertion in tests.
+func newTestLogger(t *testing.T) (*bytes.Buffer, *slog.Logger) {
 	t.Helper()
 
 	var buf bytes.Buffer
-	handler := slog.NewTextHandler(&buf, nil)
-	prev := slog.Default()
-	slog.SetDefault(slog.New(handler))
-	t.Cleanup(func() { slog.SetDefault(prev) })
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
 
-	return &buf
+	return &buf, logger
 }

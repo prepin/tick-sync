@@ -15,26 +15,28 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+
 	cfg, err := config.Load()
 	if err != nil {
-		slog.Error("load config", "error", err)
+		logger.Error("load config", "error", err)
 		os.Exit(1)
 	}
 
-	application, err := app.New(ctx, cfg)
+	application, err := app.New(ctx, cfg, app.WithLogger(logger))
 	if err != nil {
-		slog.Error("create app", "error", err)
+		logger.Error("create app", "error", err)
 		os.Exit(1)
 	}
 	defer func() {
-		if err := application.Close(); err != nil {
-			slog.Warn("cleanup failed", "error", err)
+		if closeErr := application.Close(); closeErr != nil {
+			logger.Warn("cleanup failed", "error", closeErr)
 		}
 	}()
 
-	slog.Info("sync service started", "poll_interval", cfg.PollInterval)
-	if err := application.Run(ctx); err != nil {
-		slog.Error("app run failed", "error", err)
+	logger.Info("sync service started", "poll_interval", cfg.PollInterval)
+	if runErr := application.Run(ctx); runErr != nil {
+		logger.Error("app run failed", "error", runErr)
 		os.Exit(1)
 	}
 }
