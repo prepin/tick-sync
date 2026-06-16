@@ -2,13 +2,11 @@
 package config
 
 import (
-	"cmp"
-	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/caarlos0/env/v11"
 	"github.com/joho/godotenv"
 
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
@@ -16,65 +14,48 @@ import (
 
 // Config holds environment-driven configuration for the service.
 type Config struct {
-	DBPath               string
-	GooglePostSyncAction googletasksync.PostSyncAction
-	PollInterval         time.Duration
+	DBPath               string                        `env:"DB_PATH" envDefault:"./tick-sync.db"`
+	GooglePostSyncAction googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION" envDefault:"complete"`
+	PollInterval         time.Duration                 `env:"POLL_INTERVAL" envDefault:"5m"`
 
-	GoogleClientID     string
-	GoogleClientSecret string
-	GoogleRefreshToken string
-	GoogleTokenType    string
-	GoogleTokenExpiry  time.Time
-	GoogleAPIEndpoint  string
-	GoogleTaskListID   string
+	GoogleClientID     string    `env:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret string    `env:"GOOGLE_CLIENT_SECRET"`
+	GoogleRefreshToken string    `env:"GOOGLE_REFRESH_TOKEN"`
+	GoogleTokenType    string    `env:"GOOGLE_TOKEN_TYPE" envDefault:"Bearer"`
+	GoogleTokenExpiry  time.Time `env:"GOOGLE_TOKEN_EXPIRY"`
+	GoogleAPIEndpoint  string    `env:"GOOGLE_API_ENDPOINT"`
+	GoogleTaskListID   string    `env:"GOOGLE_TASKLIST_ID" envDefault:"@default"`
 
-	TickTickAccessToken string
-	TickTickAPIBaseURL  string
-	TickTickTimeZone    string
-	TickTickProjectID   string
+	TickTickAccessToken string `env:"TICKTICK_ACCESS_TOKEN"`
+	TickTickAPIBaseURL  string `env:"TICKTICK_API_BASE_URL" envDefault:"https://api.ticktick.com/open/v1"`
+	TickTickTimeZone    string `env:"TICKTICK_TIME_ZONE" envDefault:"UTC"`
+	TickTickProjectID   string `env:"TICKTICK_PROJECT_ID"`
 }
 
 // Load reads configuration from environment variables and applies defaults.
 func Load() (Config, error) {
 	_ = godotenv.Load()
 
-	rawAction := cmp.Or(env("GOOGLE_POST_SYNC_ACTION"), "complete")
+	cfg, err := env.ParseAs[Config]()
+	if err != nil {
+		return Config{}, err
+	}
 
-	var postSyncAction googletasksync.PostSyncAction
-	switch rawAction {
-	case string(googletasksync.PostSyncActionComplete):
-		postSyncAction = googletasksync.PostSyncActionComplete
-	case string(googletasksync.PostSyncActionDelete):
-		postSyncAction = googletasksync.PostSyncActionDelete
+	switch cfg.GooglePostSyncAction {
+	case googletasksync.PostSyncActionComplete:
+		cfg.GooglePostSyncAction = googletasksync.PostSyncActionComplete
+	case googletasksync.PostSyncActionDelete:
+		cfg.GooglePostSyncAction = googletasksync.PostSyncActionDelete
 	default:
-		return Config{}, fmt.Errorf("unsupported GOOGLE_POST_SYNC_ACTION %q; expected complete or delete", rawAction)
+		return Config{}, fmt.Errorf("unsupported GOOGLE_POST_SYNC_ACTION %q; expected complete or delete", cfg.GooglePostSyncAction)
 	}
 
-	cfg := Config{
-		DBPath:               cmp.Or(env("DB_PATH"), "./tick-sync.db"),
-		GooglePostSyncAction: postSyncAction,
-		GoogleClientID:       env("GOOGLE_CLIENT_ID"),
-		GoogleClientSecret:   env("GOOGLE_CLIENT_SECRET"),
-		GoogleRefreshToken:   env("GOOGLE_REFRESH_TOKEN"),
-		GoogleTokenType:      cmp.Or(env("GOOGLE_TOKEN_TYPE"), "Bearer"),
-		GoogleTaskListID:     cmp.Or(env("GOOGLE_TASKLIST_ID"), "@default"),
-		TickTickAccessToken:  env("TICKTICK_ACCESS_TOKEN"),
-		TickTickAPIBaseURL:   cmp.Or(env("TICKTICK_API_BASE_URL"), "https://api.ticktick.com/open/v1"),
-		TickTickTimeZone:     cmp.Or(env("TICKTICK_TIME_ZONE"), "UTC"),
-		TickTickProjectID:    env("TICKTICK_PROJECT_ID"),
+	if cfg.GoogleTokenExpiry.IsZero() {
+		cfg.GoogleTokenExpiry = time.Now().Add(-time.Hour)
 	}
-
-	pollInterval, err := parsePollInterval(env("POLL_INTERVAL"))
-	if err != nil {
-		return Config{}, err
+	if cfg.PollInterval <= 0 {
+		return Config{}, fmt.Errorf("POLL_INTERVAL must be greater than zero")
 	}
-	cfg.PollInterval = pollInterval
-
-	expiry, err := parseTokenExpiry(env("GOOGLE_TOKEN_EXPIRY"))
-	if err != nil {
-		return Config{}, err
-	}
-	cfg.GoogleTokenExpiry = expiry
 
 	if err := cfg.Validate(); err != nil {
 		return Config{}, err
@@ -102,39 +83,4 @@ func (c Config) Validate() error {
 	}
 
 	return nil
-}
-
-func env(key string) string {
-	return strings.TrimSpace(os.Getenv(key))
-}
-
-func parseTokenExpiry(value string) (time.Time, error) {
-	if value == "" {
-		return time.Now().Add(-time.Hour), nil
-	}
-
-	expiry, err := time.Parse(time.RFC3339, value)
-	if err != nil {
-		return time.Time{}, errors.New(
-			"GOOGLE_TOKEN_EXPIRY must be an RFC3339 timestamp, for example 2026-06-10T12:00:00Z",
-		)
-	}
-
-	return expiry, nil
-}
-
-func parsePollInterval(value string) (time.Duration, error) {
-	if value == "" {
-		return 5 * time.Minute, nil
-	}
-
-	interval, err := time.ParseDuration(value)
-	if err != nil {
-		return 0, fmt.Errorf("POLL_INTERVAL must be a valid duration, for example 5m: %w", err)
-	}
-	if interval <= 0 {
-		return 0, errors.New("POLL_INTERVAL must be greater than zero")
-	}
-
-	return interval, nil
 }

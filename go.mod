@@ -5,6 +5,7 @@ go 1.26.4
 tool go.uber.org/mock/mockgen
 
 require (
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/joho/godotenv v1.5.1
 	go.uber.org/mock v0.6.0
 	golang.org/x/oauth2 v0.36.0
