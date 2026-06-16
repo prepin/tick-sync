@@ -32,7 +32,7 @@ func TestNewRejectsDBOpenFailure(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "create google tasks repo") {
+	if !strings.Contains(err.Error(), "run sqlite migrations") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

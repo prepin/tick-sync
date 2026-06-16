@@ -9,6 +9,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
+	"github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
@@ -32,6 +33,12 @@ func openTestDB(t *testing.T) *sql.DB {
 	if err != nil {
 		t.Fatalf("open sqlite db: %v", err)
 	}
+
+	if err := migrate.Up(t.Context(), db); err != nil {
+		db.Close()
+		t.Fatalf("run sqlite migrations: %v", err)
+	}
+
 	t.Cleanup(func() {
 		if err := db.Close(); err != nil {
 			t.Fatalf("close sqlite db: %v", err)

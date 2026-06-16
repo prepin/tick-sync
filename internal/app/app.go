@@ -15,6 +15,7 @@ import (
 	googletasks "github.com/prepin/tick-sync/internal/infra/clients/googletasks"
 	ticktick "github.com/prepin/tick-sync/internal/infra/clients/ticktick"
 	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
+	sqlitemigrate "github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
@@ -53,6 +54,11 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	db, err := sql.Open("sqlite", cfg.DBPath)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite db: %w", err)
+	}
+
+	if err := sqlitemigrate.Up(ctx, db); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("run sqlite migrations: %w", err)
 	}
 
 	a := &App{cfg: cfg, db: db, logger: slog.New(slog.DiscardHandler)}
