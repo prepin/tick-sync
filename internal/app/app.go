@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"log/slog"
 
-	gtasksclient "github.com/prepin/tick-sync/internal/clients/googletasks"
-	ticktickclient "github.com/prepin/tick-sync/internal/clients/ticktick"
+	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
 	"github.com/prepin/tick-sync/internal/config"
-	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
-	googletaskssyncjob "github.com/prepin/tick-sync/internal/jobs/googletaskssync"
-	usecase "github.com/prepin/tick-sync/internal/usecases/googletasksync"
+	gtasksclient "github.com/prepin/tick-sync/internal/infra/googletasks"
+	gtasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/syncedtasks"
+	ticktickclient "github.com/prepin/tick-sync/internal/infra/ticktick"
+	googletasksyncjob "github.com/prepin/tick-sync/internal/transport/cron/googletasksync"
 	_ "modernc.org/sqlite"
 )
 
-type Runner interface {
+type JobsRunner interface {
 	Start(ctx context.Context)
 }
 
@@ -24,10 +24,10 @@ type Option func(*App)
 type App struct {
 	cfg  config.Config
 	db   *sql.DB
-	jobs []Runner
+	jobs []JobsRunner
 }
 
-func WithJobs(jobs []Runner) Option {
+func WithJobs(jobs []JobsRunner) Option {
 	return func(a *App) {
 		a.jobs = jobs
 	}
@@ -48,10 +48,10 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		return a, nil
 	}
 
-	repo, err := googletasksrepo.NewGoogleTasksRepo(ctx, db)
+	repo, err := gtasksrepo.New(ctx, db)
 	if err != nil {
 		db.Close()
-		return nil, fmt.Errorf("create google tasks repo: %w", err)
+		return nil, fmt.Errorf("create synced tasks repo: %w", err)
 	}
 
 	google, err := gtasksclient.New(ctx, cfg)
@@ -66,8 +66,8 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		return nil, fmt.Errorf("create ticktick client: %w", err)
 	}
 
-	uc := usecase.New(google, ticktick, repo, cfg.GooglePostSyncAction)
-	a.jobs = []Runner{googletaskssyncjob.New(uc, cfg.PollInterval)}
+	uc := googletasksync.New(google, ticktick, repo, cfg.GooglePostSyncAction)
+	a.jobs = []JobsRunner{googletasksyncjob.New(uc, cfg.PollInterval)}
 
 	return a, nil
 }

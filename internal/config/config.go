@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/prepin/tick-sync/internal/consts"
+	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
 )
 
 type Config struct {
 	DBPath               string
-	GooglePostSyncAction consts.PostSyncAction
+	GooglePostSyncAction googletasksync.PostSyncAction
 	PollInterval         time.Duration
 
 	GoogleClientID     string
@@ -37,12 +37,12 @@ func Load() (Config, error) {
 
 	rawAction := cmp.Or(env("GOOGLE_POST_SYNC_ACTION"), "complete")
 
-	var postSyncAction consts.PostSyncAction
+	var postSyncAction googletasksync.PostSyncAction
 	switch rawAction {
-	case string(consts.PostSyncActionComplete):
-		postSyncAction = consts.PostSyncActionComplete
-	case string(consts.PostSyncActionDelete):
-		postSyncAction = consts.PostSyncActionDelete
+	case string(googletasksync.PostSyncActionComplete):
+		postSyncAction = googletasksync.PostSyncActionComplete
+	case string(googletasksync.PostSyncActionDelete):
+		postSyncAction = googletasksync.PostSyncActionDelete
 	default:
 		return Config{}, fmt.Errorf("unsupported GOOGLE_POST_SYNC_ACTION %q; expected complete or delete", rawAction)
 	}

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prepin/tick-sync/internal/consts"
+	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
 )
 
 // Loads config with all defaults applied when environment variables are empty.
@@ -30,7 +30,7 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	if cfg.DBPath != "./tick-sync.db" {
 		t.Fatalf("unexpected db path: %s", cfg.DBPath)
 	}
-	if cfg.GooglePostSyncAction != consts.PostSyncActionComplete {
+	if cfg.GooglePostSyncAction != googletasksync.PostSyncActionComplete {
 		t.Fatalf("unexpected post sync action: %s", cfg.GooglePostSyncAction)
 	}
 	if cfg.PollInterval != 5*time.Minute {

@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/prepin/tick-sync/internal/app"
+	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
+	"github.com/prepin/tick-sync/internal/application/googletasksync/mocks"
 	"github.com/prepin/tick-sync/internal/config"
-	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
-	googletaskssyncjob "github.com/prepin/tick-sync/internal/jobs/googletaskssync"
-	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
-	"github.com/prepin/tick-sync/internal/usecases/googletasksync/mocks"
+	gtasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/syncedtasks"
+	googletasksyncjob "github.com/prepin/tick-sync/internal/transport/cron/googletasksync"
 	"go.uber.org/mock/gomock"
 	_ "modernc.org/sqlite"
 )
@@ -28,24 +28,24 @@ func TestMainRunsSyncAndStopsOnContextCancel(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo, err := googletasksrepo.NewGoogleTasksRepo(t.Context(), db)
+	repo, err := gtasksrepo.New(t.Context(), db)
 	if err != nil {
 		t.Fatalf("new repo: %v", err)
 	}
 
-	google := mocks.NewMockGoogleTasksClient(ctrl)
-	ticktick := mocks.NewMockTickTickClient(ctrl)
+	google := mocks.NewMockGoogleTasksGateway(ctrl)
+	ticktick := mocks.NewMockTickTickGateway(ctrl)
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
-	job := googletaskssyncjob.New(uc, time.Minute)
+	job := googletasksyncjob.New(uc, time.Minute)
 
 	cfg := config.Config{DBPath: dbPath, PollInterval: time.Minute}
 	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
 
-	application, err := app.New(ctx, cfg, app.WithJobs([]app.Runner{job}))
+	application, err := app.New(ctx, cfg, app.WithJobs([]app.JobsRunner{job}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}

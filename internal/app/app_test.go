@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
+	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
+	"github.com/prepin/tick-sync/internal/application/googletasksync/mocks"
 	"github.com/prepin/tick-sync/internal/config"
-	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
-	googletaskssyncjob "github.com/prepin/tick-sync/internal/jobs/googletaskssync"
-	"github.com/prepin/tick-sync/internal/usecases/googletasksync"
-	"github.com/prepin/tick-sync/internal/usecases/googletasksync/mocks"
+	gtasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/syncedtasks"
+	googletasksyncjob "github.com/prepin/tick-sync/internal/transport/cron/googletasksync"
 	"go.uber.org/mock/gomock"
 	_ "modernc.org/sqlite"
 )
@@ -30,7 +30,7 @@ func TestNewRejectsDBOpenFailure(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "create google tasks repo") {
+	if !strings.Contains(err.Error(), "create synced tasks repo") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -65,24 +65,24 @@ func TestAppRunStopsOnContextCancel(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo, err := googletasksrepo.NewGoogleTasksRepo(t.Context(), db)
+	repo, err := gtasksrepo.New(t.Context(), db)
 	if err != nil {
 		t.Fatalf("new repo: %v", err)
 	}
 
-	google := mocks.NewMockGoogleTasksClient(ctrl)
-	ticktick := mocks.NewMockTickTickClient(ctrl)
+	google := mocks.NewMockGoogleTasksGateway(ctrl)
+	ticktick := mocks.NewMockTickTickGateway(ctrl)
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
-	job := googletaskssyncjob.New(uc, time.Minute)
+	job := googletasksyncjob.New(uc, time.Minute)
 
 	cfg := config.Config{DBPath: dbPath, PollInterval: time.Minute}
 	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
 
-	application, err := New(ctx, cfg, WithJobs([]Runner{job}))
+	application, err := New(ctx, cfg, WithJobs([]JobsRunner{job}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
@@ -98,7 +98,7 @@ func TestAppClose(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 	cfg := config.Config{DBPath: dbPath}
 
-	application, err := New(t.Context(), cfg, WithJobs([]Runner{}))
+	application, err := New(t.Context(), cfg, WithJobs([]JobsRunner{}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
