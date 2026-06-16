@@ -59,19 +59,25 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 
 	repo, err := googletasksrepo.New(ctx, db)
 	if err != nil {
-		db.Close()
+		if closeErr := db.Close(); closeErr != nil {
+			a.logger.WarnContext(ctx, "close db after repo init failure", "error", closeErr)
+		}
 		return nil, fmt.Errorf("create google tasks repo: %w", err)
 	}
 
 	google, err := googletasks.New(ctx, cfg)
 	if err != nil {
-		db.Close()
+		if closeErr := db.Close(); closeErr != nil {
+			a.logger.WarnContext(ctx, "close db after google client init failure", "error", closeErr)
+		}
 		return nil, fmt.Errorf("create google tasks client: %w", err)
 	}
 
 	ticktick, err := ticktick.New(cfg)
 	if err != nil {
-		db.Close()
+		if closeErr := db.Close(); closeErr != nil {
+			a.logger.WarnContext(ctx, "close db after ticktick client init failure", "error", closeErr)
+		}
 		return nil, fmt.Errorf("create ticktick client: %w", err)
 	}
 

@@ -19,14 +19,12 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		logger.Error("load config", "error", err)
-		os.Exit(1)
+		fatal(logger, stop, "load config", err)
 	}
 
 	application, err := app.New(ctx, cfg, app.WithLogger(logger))
 	if err != nil {
-		logger.Error("create app", "error", err)
-		os.Exit(1)
+		fatal(logger, stop, "create app", err)
 	}
 	defer func() {
 		if closeErr := application.Close(); closeErr != nil {
@@ -36,7 +34,13 @@ func main() {
 
 	logger.Info("sync service started", "poll_interval", cfg.PollInterval)
 	if runErr := application.Run(ctx); runErr != nil {
-		logger.Error("app run failed", "error", runErr)
-		os.Exit(1)
+		fatal(logger, stop, "app run failed", runErr)
 	}
+}
+
+// fatal logs the error, runs deferred cleanup that os.Exit would otherwise skip, and exits.
+func fatal(logger *slog.Logger, stop func(), msg string, err error) {
+	logger.Error(msg, "error", err)
+	stop()
+	os.Exit(1)
 }
