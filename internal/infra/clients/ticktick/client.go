@@ -2,6 +2,7 @@ package ticktick
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -41,7 +42,7 @@ func WithHTTPClient(httpClient *http.Client) Option {
 // New creates a TickTick client from config.
 func New(cfg config.Config, opts ...Option) (*Client, error) {
 	if cfg.TickTickAccessToken == "" {
-		return nil, fmt.Errorf("missing required environment variable: TICKTICK_ACCESS_TOKEN")
+		return nil, errors.New("missing required environment variable: TICKTICK_ACCESS_TOKEN")
 	}
 
 	apiBaseURL := cmp.Or(cfg.TickTickAPIBaseURL, defaultAPIBaseURL)
@@ -51,7 +52,7 @@ func New(cfg config.Config, opts ...Option) (*Client, error) {
 		return nil, fmt.Errorf("parse ticktick api base url: %w", err)
 	}
 	if !parsedBaseURL.IsAbs() {
-		return nil, fmt.Errorf("parse ticktick api base url: URL must be absolute")
+		return nil, errors.New("parse ticktick api base url: URL must be absolute")
 	}
 
 	client := &Client{

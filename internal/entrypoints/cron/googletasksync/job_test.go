@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/mock/gomock"
+
 	cron "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync/mocks"
-	"go.uber.org/mock/gomock"
 )
 
 // Returns "google-tasks-sync" as the job name when queried.

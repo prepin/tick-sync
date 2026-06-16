@@ -7,14 +7,15 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/mock/gomock"
+	_ "modernc.org/sqlite"
+
 	"github.com/prepin/tick-sync/internal/app"
 	"github.com/prepin/tick-sync/internal/config"
 	googletasksyncjob "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
 	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync/mocks"
-	"go.uber.org/mock/gomock"
-	_ "modernc.org/sqlite"
 )
 
 // Runs the app with mock clients, executes one sync, and returns nil when the context is cancelled.

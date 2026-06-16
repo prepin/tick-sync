@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/mock/gomock"
+
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync/mocks"
-	"go.uber.org/mock/gomock"
 )
 
 // Syncs a single unprocessed Google Task to TickTick, saves the record, and completes it on Google.
@@ -188,7 +189,13 @@ func TestUsecaseSyncGoogleTasksToTickTickContinuesAfterPerTaskError(t *testing.T
 		t.Fatal("expected sync error")
 	}
 
-	want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 2, Created: 1, Failed: 1, Completed: 1, Errors: []error{createErr}}
+	want := googletasksync.SyncGoogleTasksToTickTickResult{
+		Seen:      2,
+		Created:   1,
+		Failed:    1,
+		Completed: 1,
+		Errors:    []error{createErr},
+	}
 	assertResult(t, result, want)
 }
 
@@ -213,7 +220,11 @@ func TestUsecaseSyncGoogleTasksToTickTickReturnsListError(t *testing.T) {
 }
 
 // assertResult checks that the result fields match expected values, ignoring the order of errors.
-func assertResult(t *testing.T, got googletasksync.SyncGoogleTasksToTickTickResult, want googletasksync.SyncGoogleTasksToTickTickResult) {
+func assertResult(
+	t *testing.T,
+	got googletasksync.SyncGoogleTasksToTickTickResult,
+	want googletasksync.SyncGoogleTasksToTickTickResult,
+) {
 	t.Helper()
 
 	if got.Seen != want.Seen ||

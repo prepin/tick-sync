@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"log/slog"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/prepin/tick-sync/internal/config"
 	googletasksyncjob "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
 	googletasks "github.com/prepin/tick-sync/internal/infra/clients/googletasks"
 	ticktick "github.com/prepin/tick-sync/internal/infra/clients/ticktick"
 	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
-	_ "modernc.org/sqlite"
 )
 
 type JobsRunner interface {
@@ -73,14 +74,14 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 }
 
 func (a *App) Run(ctx context.Context) error {
-	slog.Info("sync service started", "poll_interval", a.cfg.PollInterval)
+	slog.InfoContext(ctx, "sync service started", "poll_interval", a.cfg.PollInterval)
 
 	for _, job := range a.jobs {
 		job.Start(ctx)
 	}
 
 	<-ctx.Done()
-	slog.Info("shutdown requested")
+	slog.InfoContext(ctx, "shutdown requested")
 	return nil
 }
 

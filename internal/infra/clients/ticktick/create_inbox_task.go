@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -12,7 +13,10 @@ import (
 )
 
 // CreateInboxTask creates a TickTick inbox task from the usecase input.
-func (c *Client) CreateInboxTask(ctx context.Context, input googletasksync.CreateTickTickTaskInput) (googletasksync.TickTickTaskView, error) {
+func (c *Client) CreateInboxTask(
+	ctx context.Context,
+	input googletasksync.CreateTickTickTaskInput,
+) (googletasksync.TickTickTaskView, error) {
 	requestBody, err := toCreateTaskRequest(input, c.projectID, c.timeZone)
 	if err != nil {
 		return googletasksync.TickTickTaskView{}, err
@@ -43,7 +47,11 @@ func (c *Client) CreateInboxTask(ctx context.Context, input googletasksync.Creat
 	defer resp.Body.Close()
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return googletasksync.TickTickTaskView{}, fmt.Errorf("create ticktick task: status %d: %s", resp.StatusCode, readErrorBody(resp.Body))
+		return googletasksync.TickTickTaskView{}, fmt.Errorf(
+			"create ticktick task: status %d: %s",
+			resp.StatusCode,
+			readErrorBody(resp.Body),
+		)
 	}
 
 	var created createTaskResponse
@@ -51,7 +59,7 @@ func (c *Client) CreateInboxTask(ctx context.Context, input googletasksync.Creat
 		return googletasksync.TickTickTaskView{}, fmt.Errorf("decode ticktick create task response: %w", err)
 	}
 	if created.ID == "" {
-		return googletasksync.TickTickTaskView{}, fmt.Errorf("decode ticktick create task response: missing id")
+		return googletasksync.TickTickTaskView{}, errors.New("decode ticktick create task response: missing id")
 	}
 
 	return toTickTickTaskView(created), nil

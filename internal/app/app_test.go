@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"go.uber.org/mock/gomock"
+	_ "modernc.org/sqlite"
+
 	"github.com/prepin/tick-sync/internal/config"
 	googletasksyncjob "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
 	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync/mocks"
-	"go.uber.org/mock/gomock"
-	_ "modernc.org/sqlite"
 )
 
 // Does not create an app when the database path is a directory or unwritable.

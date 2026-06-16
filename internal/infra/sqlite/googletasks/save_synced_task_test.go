@@ -88,7 +88,8 @@ func TestSaveSyncedTaskIsIdempotent(t *testing.T) {
 	}
 
 	var count int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM synced_google_tasks WHERE google_task_id = ?;`, params.GoogleTaskID).Scan(&count); err != nil {
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM synced_google_tasks WHERE google_task_id = ?;`, params.GoogleTaskID).
+		Scan(&count); err != nil {
 		t.Fatalf("count records: %v", err)
 	}
 	if count != 1 {

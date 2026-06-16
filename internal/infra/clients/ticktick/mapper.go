@@ -7,7 +7,10 @@ import (
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
-func toCreateTaskRequest(input googletasksync.CreateTickTickTaskInput, projectID, timeZone string) (createTaskRequest, error) {
+func toCreateTaskRequest(
+	input googletasksync.CreateTickTickTaskInput,
+	projectID, timeZone string,
+) (createTaskRequest, error) {
 	dueDate, hasDueDate, err := formatDueDate(input.Due)
 	if err != nil {
 		return createTaskRequest{}, err

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
@@ -112,7 +113,9 @@ func parseTokenExpiry(value string) (time.Time, error) {
 
 	expiry, err := time.Parse(time.RFC3339, value)
 	if err != nil {
-		return time.Time{}, errors.New("GOOGLE_TOKEN_EXPIRY must be an RFC3339 timestamp, for example 2026-06-10T12:00:00Z")
+		return time.Time{}, errors.New(
+			"GOOGLE_TOKEN_EXPIRY must be an RFC3339 timestamp, for example 2026-06-10T12:00:00Z",
+		)
 	}
 
 	return expiry, nil

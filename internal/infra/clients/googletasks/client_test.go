@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"google.golang.org/api/option"
 	tasksapi "google.golang.org/api/tasks/v1"
+
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 // Maps the Google Tasks API response into domain tasks with all expected fields.

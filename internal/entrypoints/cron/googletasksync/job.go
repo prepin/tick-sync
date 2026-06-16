@@ -32,10 +32,10 @@ func (j *Job) Start(ctx context.Context) {
 }
 
 func (j *Job) run(ctx context.Context) {
-	slog.Info("job started", "job", j.Name())
+	slog.InfoContext(ctx, "job started", "job", j.Name())
 
 	if err := j.Execute(ctx); err != nil {
-		slog.Error("job initial sync failed", "job", j.Name(), "error", err)
+		slog.ErrorContext(ctx, "job initial sync failed", "job", j.Name(), "error", err)
 		return
 	}
 
@@ -45,11 +45,11 @@ func (j *Job) run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			slog.Info("job shutting down", "job", j.Name())
+			slog.InfoContext(ctx, "job shutting down", "job", j.Name())
 			return
 		case <-ticker.C:
 			if err := j.Execute(ctx); err != nil {
-				slog.Error("job sync failed", "job", j.Name(), "error", err)
+				slog.ErrorContext(ctx, "job sync failed", "job", j.Name(), "error", err)
 			}
 		}
 	}

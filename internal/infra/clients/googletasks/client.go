@@ -3,12 +3,13 @@ package googletasks
 import (
 	"context"
 
-	"github.com/prepin/tick-sync/internal/config"
-	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	tasksapi "google.golang.org/api/tasks/v1"
+
+	"github.com/prepin/tick-sync/internal/config"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 // Client is the Google Tasks API adapter.

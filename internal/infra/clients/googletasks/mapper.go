@@ -1,8 +1,9 @@
 package googletasks
 
 import (
-	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	tasksapi "google.golang.org/api/tasks/v1"
+
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 func toGoogleTaskView(task *tasksapi.Task) googletasksync.GoogleTaskView {

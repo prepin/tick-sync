@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	_ "modernc.org/sqlite"
+
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 // Creates a Repo with a fresh in-memory SQLite database for testing.
