@@ -1,3 +1,4 @@
+// Package main is the entry point for the tick-sync service.
 package main
 
 import (

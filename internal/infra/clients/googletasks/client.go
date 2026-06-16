@@ -1,3 +1,4 @@
+// Package googletasks implements a client for the Google Tasks API.
 package googletasks
 
 import (

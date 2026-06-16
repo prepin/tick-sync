@@ -1,3 +1,4 @@
+// Package googletasksync provides a cron job that syncs Google Tasks to TickTick.
 package googletasksync
 
 import (

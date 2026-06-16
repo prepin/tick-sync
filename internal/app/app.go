@@ -1,3 +1,4 @@
+// Package app orchestrates the tick-sync service lifecycle.
 package app
 
 import (
@@ -6,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	// Register the modernc.org/sqlite database driver.
 	_ "modernc.org/sqlite"
 
 	"github.com/prepin/tick-sync/internal/config"
@@ -16,12 +18,15 @@ import (
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
+// JobsRunner defines the interface for background jobs started by App.
 type JobsRunner interface {
 	Start(ctx context.Context)
 }
 
+// Option configures an App during construction.
 type Option func(*App)
 
+// App ties together configuration, storage, clients, and background jobs.
 type App struct {
 	cfg    config.Config
 	db     *sql.DB
@@ -29,6 +34,7 @@ type App struct {
 	logger *slog.Logger
 }
 
+// WithJobs overrides the default jobs created by New.
 func WithJobs(jobs []JobsRunner) Option {
 	return func(a *App) {
 		a.jobs = jobs
@@ -42,6 +48,7 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
+// New creates an App with the given configuration and options.
 func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	db, err := sql.Open("sqlite", cfg.DBPath)
 	if err != nil {
@@ -87,6 +94,7 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	return a, nil
 }
 
+// Run starts all background jobs and blocks until the context is cancelled.
 func (a *App) Run(ctx context.Context) error {
 	a.logger.InfoContext(ctx, "sync service started", "poll_interval", a.cfg.PollInterval)
 
@@ -99,6 +107,7 @@ func (a *App) Run(ctx context.Context) error {
 	return nil
 }
 
+// Close releases the database connection.
 func (a *App) Close() error {
 	return a.db.Close()
 }

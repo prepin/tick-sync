@@ -105,7 +105,7 @@ func TestCompletePatchesGoogleTaskStatus(t *testing.T) {
 func TestCompleteReportsErrorOnNon2xxResponse(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "task not found", http.StatusNotFound)
 	}))
 	t.Cleanup(server.Close)
@@ -142,7 +142,7 @@ func TestDeleteDeletesGoogleTask(t *testing.T) {
 func TestDeleteReportsErrorOnNon2xxResponse(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}))
 	t.Cleanup(server.Close)
@@ -207,7 +207,7 @@ func TestListUncompletedCollectsTasksAcrossPages(t *testing.T) {
 func TestListUncompletedReturnsErrorOnNon2xxResponse(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 	}))
 	t.Cleanup(server.Close)

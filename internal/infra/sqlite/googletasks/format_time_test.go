@@ -1,3 +1,4 @@
+// Package googletasks provides SQLite storage for synced Google Tasks.
 package googletasks
 
 import (

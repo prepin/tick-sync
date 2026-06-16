@@ -149,7 +149,7 @@ func TestCreateInboxTaskOmitsDueDateWhenMissing(t *testing.T) {
 func TestCreateInboxTaskReturnsNon2xxErrorWithBody(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, `{"error":"projectId required"}`, http.StatusBadRequest)
 	}))
 	t.Cleanup(server.Close)
@@ -168,7 +168,7 @@ func TestCreateInboxTaskReturnsNon2xxErrorWithBody(t *testing.T) {
 func TestCreateInboxTaskReturnsInvalidJSONError(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte("not-json"))
 	}))
 	t.Cleanup(server.Close)
@@ -187,7 +187,7 @@ func TestCreateInboxTaskReturnsInvalidJSONError(t *testing.T) {
 func TestCreateInboxTaskReturnsMissingIDError(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(t, w, map[string]string{"title": "Buy milk"})
 	}))
 	t.Cleanup(server.Close)

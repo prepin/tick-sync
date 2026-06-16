@@ -1,3 +1,4 @@
+// Package ticktick implements a client for the TickTick API.
 package ticktick
 
 import (

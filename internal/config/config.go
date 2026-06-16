@@ -1,3 +1,4 @@
+// Package config loads and validates application configuration.
 package config
 
 import (
@@ -13,6 +14,7 @@ import (
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
+// Config holds environment-driven configuration for the service.
 type Config struct {
 	DBPath               string
 	GooglePostSyncAction googletasksync.PostSyncAction
@@ -33,6 +35,7 @@ type Config struct {
 	TickTickProjectID   string
 }
 
+// Load reads configuration from environment variables and applies defaults.
 func Load() (Config, error) {
 	_ = godotenv.Load()
 
@@ -82,6 +85,7 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
+// Validate returns an error if required configuration values are missing.
 func (c Config) Validate() error {
 	var missing []string
 
