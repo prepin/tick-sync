@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log/slog"
 
-	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
 	"github.com/prepin/tick-sync/internal/config"
-	gtasksclient "github.com/prepin/tick-sync/internal/infra/googletasks"
-	gtasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/syncedtasks"
-	ticktickclient "github.com/prepin/tick-sync/internal/infra/ticktick"
-	googletasksyncjob "github.com/prepin/tick-sync/internal/transport/cron/googletasksync"
+	googletasksyncjob "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
+	googletasks "github.com/prepin/tick-sync/internal/infra/clients/googletasks"
+	ticktick "github.com/prepin/tick-sync/internal/infra/clients/ticktick"
+	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
+	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	_ "modernc.org/sqlite"
 )
 
@@ -48,19 +48,19 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		return a, nil
 	}
 
-	repo, err := gtasksrepo.New(ctx, db)
+	repo, err := googletasksrepo.New(ctx, db)
 	if err != nil {
 		db.Close()
-		return nil, fmt.Errorf("create synced tasks repo: %w", err)
+		return nil, fmt.Errorf("create google tasks repo: %w", err)
 	}
 
-	google, err := gtasksclient.New(ctx, cfg)
+	google, err := googletasks.New(ctx, cfg)
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("create google tasks client: %w", err)
 	}
 
-	ticktick, err := ticktickclient.New(cfg)
+	ticktick, err := ticktick.New(cfg)
 	if err != nil {
 		db.Close()
 		return nil, fmt.Errorf("create ticktick client: %w", err)

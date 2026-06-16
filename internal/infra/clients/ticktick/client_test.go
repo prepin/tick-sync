@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/prepin/tick-sync/internal/application/googletasksync"
 	"github.com/prepin/tick-sync/internal/config"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 // Does not create a client when the TickTick access token is not provided.

@@ -1,4 +1,4 @@
-package syncedtasks
+package googletasks
 
 import (
 	"testing"

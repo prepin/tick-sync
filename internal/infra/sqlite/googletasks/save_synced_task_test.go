@@ -1,4 +1,4 @@
-package syncedtasks
+package googletasks
 
 import (
 	"strings"
@@ -31,7 +31,7 @@ func TestSaveSyncedTaskStoresRecordFields(t *testing.T) {
 	db := openTestDB(t)
 	repo, err := New(ctx, db)
 	if err != nil {
-		t.Fatalf("new synced tasks repo: %v", err)
+		t.Fatalf("new google tasks repo: %v", err)
 	}
 
 	params := syncedTaskParams()
@@ -76,7 +76,7 @@ func TestSaveSyncedTaskIsIdempotent(t *testing.T) {
 	db := openTestDB(t)
 	repo, err := New(ctx, db)
 	if err != nil {
-		t.Fatalf("new synced tasks repo: %v", err)
+		t.Fatalf("new google tasks repo: %v", err)
 	}
 
 	params := syncedTaskParams()

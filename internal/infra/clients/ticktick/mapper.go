@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/prepin/tick-sync/internal/application/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 func toCreateTaskRequest(input googletasksync.CreateTickTickTaskInput, projectID, timeZone string) (createTaskRequest, error) {

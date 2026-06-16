@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
+	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 // Loads config with all defaults applied when environment variables are empty.

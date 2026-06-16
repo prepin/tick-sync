@@ -57,10 +57,13 @@ Use the existing directories:
 
 ```text
 cmd/app/
-internal/clients/
+internal/app/
 internal/config/
+internal/entrypoints/
 internal/infra/
-internal/usecases/
+  clients/
+  sqlite/
+internal/usecase/
 ```
 
 Add `docs/` for token setup documentation if it does not already exist.

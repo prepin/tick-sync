@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
+	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 type Config struct {

@@ -1,4 +1,4 @@
-package syncedtasks
+package googletasks
 
 import (
 	"context"
@@ -25,7 +25,7 @@ type Repo struct {
 // New creates a Repo and ensures the required table exists.
 func New(ctx context.Context, db *sql.DB) (*Repo, error) {
 	if db == nil {
-		return nil, fmt.Errorf("synced tasks repo: db is nil")
+		return nil, fmt.Errorf("google tasks repo: db is nil")
 	}
 
 	if _, err := db.ExecContext(ctx, createSyncedGoogleTasksTable); err != nil {

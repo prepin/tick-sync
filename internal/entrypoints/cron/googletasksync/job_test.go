@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
-	"github.com/prepin/tick-sync/internal/application/googletasksync/mocks"
-	cron "github.com/prepin/tick-sync/internal/transport/cron/googletasksync"
+	cron "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
+	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync/mocks"
 	"go.uber.org/mock/gomock"
 )
 

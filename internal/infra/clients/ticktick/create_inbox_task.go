@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/prepin/tick-sync/internal/application/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
-// CreateInboxTask creates a TickTick inbox task from the application input.
+// CreateInboxTask creates a TickTick inbox task from the usecase input.
 func (c *Client) CreateInboxTask(ctx context.Context, input googletasksync.CreateTickTickTaskInput) (googletasksync.TickTickTaskView, error) {
 	requestBody, err := toCreateTaskRequest(input, c.projectID, c.timeZone)
 	if err != nil {

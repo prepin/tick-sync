@@ -1,4 +1,4 @@
-package syncedtasks
+package googletasks
 
 import (
 	"strings"
@@ -13,7 +13,7 @@ func TestNewCreatesTable(t *testing.T) {
 
 	_, err := New(ctx, db)
 	if err != nil {
-		t.Fatalf("new synced tasks repo: %v", err)
+		t.Fatalf("new google tasks repo: %v", err)
 	}
 
 	var tableName string

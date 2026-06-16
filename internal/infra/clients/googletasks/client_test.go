@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/prepin/tick-sync/internal/application/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"google.golang.org/api/option"
 	tasksapi "google.golang.org/api/tasks/v1"
 )

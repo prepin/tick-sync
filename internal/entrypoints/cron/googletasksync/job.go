@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prepin/tick-sync/internal/application/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 // Job polls the sync use case on a configured interval.

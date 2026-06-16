@@ -3,8 +3,8 @@ package googletasks
 import (
 	"context"
 
-	"github.com/prepin/tick-sync/internal/application/googletasksync"
 	"github.com/prepin/tick-sync/internal/config"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"golang.org/x/oauth2"
 	googleoauth "golang.org/x/oauth2/google"
 	"google.golang.org/api/option"

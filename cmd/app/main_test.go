@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/prepin/tick-sync/internal/app"
-	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
-	"github.com/prepin/tick-sync/internal/application/googletasksync/mocks"
 	"github.com/prepin/tick-sync/internal/config"
-	gtasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/syncedtasks"
-	googletasksyncjob "github.com/prepin/tick-sync/internal/transport/cron/googletasksync"
+	googletasksyncjob "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
+	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
+	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync/mocks"
 	"go.uber.org/mock/gomock"
 	_ "modernc.org/sqlite"
 )
@@ -28,7 +28,7 @@ func TestMainRunsSyncAndStopsOnContextCancel(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo, err := gtasksrepo.New(t.Context(), db)
+	repo, err := googletasksrepo.New(t.Context(), db)
 	if err != nil {
 		t.Fatalf("new repo: %v", err)
 	}

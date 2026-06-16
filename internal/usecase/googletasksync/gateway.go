@@ -2,7 +2,7 @@ package googletasksync
 
 import "context"
 
-// CreateTickTickTaskInput is the application-owned input for creating a TickTick task.
+// CreateTickTickTaskInput is the usecase-owned input for creating a TickTick task.
 type CreateTickTickTaskInput struct {
 	Title              string
 	Details            string

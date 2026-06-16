@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
-	"github.com/prepin/tick-sync/internal/application/googletasksync/mocks"
 	"github.com/prepin/tick-sync/internal/config"
-	gtasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/syncedtasks"
-	googletasksyncjob "github.com/prepin/tick-sync/internal/transport/cron/googletasksync"
+	googletasksyncjob "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
+	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
+	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync/mocks"
 	"go.uber.org/mock/gomock"
 	_ "modernc.org/sqlite"
 )
@@ -30,7 +30,7 @@ func TestNewRejectsDBOpenFailure(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "create synced tasks repo") {
+	if !strings.Contains(err.Error(), "create google tasks repo") {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -65,7 +65,7 @@ func TestAppRunStopsOnContextCancel(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo, err := gtasksrepo.New(t.Context(), db)
+	repo, err := googletasksrepo.New(t.Context(), db)
 	if err != nil {
 		t.Fatalf("new repo: %v", err)
 	}

@@ -1,10 +1,10 @@
-package syncedtasks
+package googletasks
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/prepin/tick-sync/internal/application/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 const queryInsertSyncedTask = `

@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	googletasksync "github.com/prepin/tick-sync/internal/application/googletasksync"
-	"github.com/prepin/tick-sync/internal/application/googletasksync/mocks"
+	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync/mocks"
 	"go.uber.org/mock/gomock"
 )
 

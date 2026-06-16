@@ -1,4 +1,4 @@
-package syncedtasks
+package googletasks
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prepin/tick-sync/internal/application/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	_ "modernc.org/sqlite"
 )
 
@@ -17,7 +17,7 @@ func newTestRepo(t *testing.T, ctx context.Context) *Repo {
 
 	repo, err := New(ctx, openTestDB(t))
 	if err != nil {
-		t.Fatalf("new synced tasks repo: %v", err)
+		t.Fatalf("new google tasks repo: %v", err)
 	}
 
 	return repo

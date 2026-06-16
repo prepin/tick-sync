@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// SaveSyncedTaskParams is the application-owned input for recording a synced task.
+// SaveSyncedTaskParams is the usecase-owned input for recording a synced task.
 type SaveSyncedTaskParams struct {
 	GoogleTaskID   string
 	GoogleUpdated  string
