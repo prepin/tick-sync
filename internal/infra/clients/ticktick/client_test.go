@@ -258,7 +258,7 @@ func newTestClient(t *testing.T, baseURL string, projectID string) *Client {
 		TickTickAPIBaseURL:  baseURL,
 		TickTickTimeZone:    "UTC",
 		TickTickProjectID:   projectID,
-	}, WithHTTPClient(http.DefaultClient))
+	})
 	if err != nil {
 		t.Fatalf("new ticktick client: %v", err)
 	}

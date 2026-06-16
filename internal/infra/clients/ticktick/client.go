@@ -28,20 +28,8 @@ type Client struct {
 	projectID  string
 }
 
-// Option configures the client.
-type Option func(*Client)
-
-// WithHTTPClient overrides the default HTTP client.
-func WithHTTPClient(httpClient *http.Client) Option {
-	return func(c *Client) {
-		if httpClient != nil {
-			c.httpClient = httpClient
-		}
-	}
-}
-
 // New creates a TickTick client from config.
-func New(cfg config.Config, opts ...Option) (*Client, error) {
+func New(cfg config.Config) (*Client, error) {
 	if cfg.TickTickAccessToken == "" {
 		return nil, errors.New("missing required environment variable: TICKTICK_ACCESS_TOKEN")
 	}
@@ -56,19 +44,13 @@ func New(cfg config.Config, opts ...Option) (*Client, error) {
 		return nil, errors.New("parse ticktick api base url: URL must be absolute")
 	}
 
-	client := &Client{
+	return &Client{
 		httpClient: http.DefaultClient,
 		baseURL:    apiBaseURL,
 		token:      cfg.TickTickAccessToken,
 		timeZone:   cmp.Or(cfg.TickTickTimeZone, defaultTimeZone),
 		projectID:  cfg.TickTickProjectID,
-	}
-
-	for _, opt := range opts {
-		opt(client)
-	}
-
-	return client, nil
+	}, nil
 }
 
 func readErrorBody(body io.Reader) string {
