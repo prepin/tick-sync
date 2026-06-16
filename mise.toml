@@ -1,5 +1,10 @@
 [tools]
 go = "1.26.4"
+golangci-lint = "2.12.2"
+
+[tasks.lint]
+description = "Run golangci-lint"
+run = "golangci-lint run ./..."
 
 [tasks.test]
 description = "Run all Go tests"
