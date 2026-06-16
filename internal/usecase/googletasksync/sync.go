@@ -66,11 +66,13 @@ func (u *SyncGoogleTasksToTickTickUseCase) syncTaskToTickTick(
 			return fmt.Errorf("delete google task %s: %w", googleTask.ID, err)
 		}
 		result.Deleted++
-	default:
+	case PostSyncActionComplete:
 		if err := u.google.Complete(ctx, googleTask.ID); err != nil {
 			return fmt.Errorf("complete google task %s: %w", googleTask.ID, err)
 		}
 		result.Completed++
+	default:
+		return fmt.Errorf("unsupported post sync action %q", u.postSyncAction)
 	}
 
 	return nil
