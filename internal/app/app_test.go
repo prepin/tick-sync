@@ -20,6 +20,7 @@ import (
 
 // Does not create an app when the database path is a directory or unwritable.
 func TestNewRejectsDBOpenFailure(t *testing.T) {
+	t.Parallel()
 	ctx := t.Context()
 	dir := t.TempDir()
 	cfg := config.Config{
@@ -38,6 +39,7 @@ func TestNewRejectsDBOpenFailure(t *testing.T) {
 
 // Does not create an app when the TickTick access token is missing.
 func TestNewRejectsMissingTickTickAccessToken(t *testing.T) {
+	t.Parallel()
 	ctx := t.Context()
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 	cfg := config.Config{
@@ -57,6 +59,7 @@ func TestNewRejectsMissingTickTickAccessToken(t *testing.T) {
 
 // Runs the sync job once and returns nil when the context is cancelled after the first execution.
 func TestAppRunStopsOnContextCancel(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 
@@ -96,6 +99,7 @@ func TestAppRunStopsOnContextCancel(t *testing.T) {
 
 // Closes the database handle and returns nil when the app has a valid DB connection.
 func TestAppClose(t *testing.T) {
+	t.Parallel()
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 	cfg := config.Config{DBPath: dbPath}
 

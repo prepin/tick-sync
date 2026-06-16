@@ -18,6 +18,7 @@ import (
 
 // Returns "google-tasks-sync" as the job name when queried.
 func TestJobName(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -34,6 +35,7 @@ func TestJobName(t *testing.T) {
 
 // Runs the initial sync, then stops on context cancellation without executing another tick.
 func TestJobStartExecutesSyncAndStopsOnCancel(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -55,6 +57,7 @@ func TestJobStartExecutesSyncAndStopsOnCancel(t *testing.T) {
 
 // Does not enter the ticker loop when the initial Execute call fails: the goroutine exits after the single failed attempt.
 func TestJobStartDoesNotEnterTickerLoopOnExecuteFailure(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -75,6 +78,7 @@ func TestJobStartDoesNotEnterTickerLoopOnExecuteFailure(t *testing.T) {
 
 // Returns the result from the usecase and reports a nil error when all tasks sync successfully.
 func TestJobExecuteReportsSuccess(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -95,6 +99,7 @@ func TestJobExecuteReportsSuccess(t *testing.T) {
 
 // Logs the sync result at INFO level with all field values when there are no errors, including the job name.
 func TestJobExecuteLogsResultWithJobName(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 
@@ -128,6 +133,7 @@ func TestJobExecuteLogsResultWithJobName(t *testing.T) {
 
 // Logs the sync result at ERROR level with joined error messages when the sync encountered failures.
 func TestJobExecuteLogsErrorsAtErrorLevel(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
 

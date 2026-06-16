@@ -20,6 +20,7 @@ import (
 
 // Runs the app with mock clients, executes one sync, and returns nil when the context is cancelled.
 func TestMainRunsSyncAndStopsOnContextCancel(t *testing.T) {
+	t.Parallel()
 	ctrl := gomock.NewController(t)
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 

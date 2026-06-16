@@ -52,6 +52,7 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 
 // Fails validation when any of the required Google OAuth environment variables are missing.
 func TestValidateRequiresGoogleOAuthValues(t *testing.T) {
+	t.Parallel()
 	cfg := Config{}
 
 	err := cfg.Validate()
@@ -73,6 +74,7 @@ func TestValidateRequiresGoogleOAuthValues(t *testing.T) {
 
 // Passes validation when only Google OAuth credentials (no access token) are provided.
 func TestValidateAllowsRefreshTokenOnly(t *testing.T) {
+	t.Parallel()
 	cfg := Config{
 		GoogleClientID:     "client-id",
 		GoogleClientSecret: "client-secret",
@@ -86,6 +88,7 @@ func TestValidateAllowsRefreshTokenOnly(t *testing.T) {
 
 // Returns a time in the past as the default token expiry when no value is configured.
 func TestParseTokenExpiryDefaultsToExpiredTime(t *testing.T) {
+	t.Parallel()
 	expiry, err := parseTokenExpiry("")
 	if err != nil {
 		t.Fatalf("parse token expiry: %v", err)
@@ -98,6 +101,7 @@ func TestParseTokenExpiryDefaultsToExpiredTime(t *testing.T) {
 
 // Parses a valid RFC3339 timestamp into the token expiry.
 func TestParseTokenExpiryParsesRFC3339(t *testing.T) {
+	t.Parallel()
 	expiry, err := parseTokenExpiry("2026-06-10T12:00:00Z")
 	if err != nil {
 		t.Fatalf("parse token expiry: %v", err)
@@ -110,6 +114,7 @@ func TestParseTokenExpiryParsesRFC3339(t *testing.T) {
 
 // Reports an error when the token expiry value is not a valid RFC3339 timestamp.
 func TestParseTokenExpiryReportsErrorForInvalidValue(t *testing.T) {
+	t.Parallel()
 	_, err := parseTokenExpiry("not-a-date")
 	if err == nil {
 		t.Fatal("expected error")
@@ -118,6 +123,7 @@ func TestParseTokenExpiryReportsErrorForInvalidValue(t *testing.T) {
 
 // Returns five minutes as the default poll interval when no value is configured.
 func TestParsePollIntervalDefaultsToFiveMinutes(t *testing.T) {
+	t.Parallel()
 	interval, err := parsePollInterval("")
 	if err != nil {
 		t.Fatalf("parse poll interval: %v", err)
@@ -129,6 +135,7 @@ func TestParsePollIntervalDefaultsToFiveMinutes(t *testing.T) {
 
 // Parses a valid duration string into the configured poll interval.
 func TestParsePollIntervalParsesDuration(t *testing.T) {
+	t.Parallel()
 	interval, err := parsePollInterval("30s")
 	if err != nil {
 		t.Fatalf("parse poll interval: %v", err)
@@ -140,6 +147,7 @@ func TestParsePollIntervalParsesDuration(t *testing.T) {
 
 // Reports an error when the poll interval string is not a valid duration.
 func TestParsePollIntervalReportsErrorForInvalidDurationString(t *testing.T) {
+	t.Parallel()
 	_, err := parsePollInterval("soon")
 	if err == nil {
 		t.Fatal("expected error")
@@ -148,6 +156,7 @@ func TestParsePollIntervalReportsErrorForInvalidDurationString(t *testing.T) {
 
 // Reports an error when the poll interval is zero or negative.
 func TestParsePollIntervalReportsErrorForNonPositiveDuration(t *testing.T) {
+	t.Parallel()
 	for _, value := range []string{"0s", "-1m"} {
 		_, err := parsePollInterval(value)
 		if err == nil {
