@@ -5,6 +5,7 @@ type SyncGoogleTasksToTickTickResult struct {
 	Seen      int
 	Created   int
 	Skipped   int
+	Delayed   int
 	Failed    int
 	Completed int
 	Deleted   int

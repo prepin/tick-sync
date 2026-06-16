@@ -19,8 +19,9 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	t.Setenv("GOOGLE_TOKEN_EXPIRY", "")
 	t.Setenv("GOOGLE_TASKLIST_ID", "")
 	t.Setenv("POLL_INTERVAL", "")
+	t.Setenv("GOOGLE_TODAY_IMPORT_DELAY", "")
+	t.Setenv("TZ", "")
 	t.Setenv("TICKTICK_API_BASE_URL", "")
-	t.Setenv("TICKTICK_TIME_ZONE", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -36,6 +37,12 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	if cfg.PollInterval != 5*time.Minute {
 		t.Fatalf("unexpected poll interval: %s", cfg.PollInterval)
 	}
+	if cfg.GoogleTodayImportDelay {
+		t.Fatal("expected today import delay to be disabled by default")
+	}
+	if cfg.Location == nil {
+		t.Fatal("expected system local timezone to be configured")
+	}
 	if cfg.GoogleTokenType != "Bearer" {
 		t.Fatalf("unexpected google token type: %s", cfg.GoogleTokenType)
 	}
@@ -44,9 +51,6 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	}
 	if cfg.TickTickAPIBaseURL != "https://api.ticktick.com/open/v1" {
 		t.Fatalf("unexpected ticktick api base url: %s", cfg.TickTickAPIBaseURL)
-	}
-	if cfg.TickTickTimeZone != "UTC" {
-		t.Fatalf("unexpected ticktick timezone: %s", cfg.TickTickTimeZone)
 	}
 }
 
@@ -149,6 +153,57 @@ func TestLoadParsesPollIntervalDuration(t *testing.T) {
 	}
 	if cfg.PollInterval != 30*time.Second {
 		t.Fatalf("unexpected interval: %s", cfg.PollInterval)
+	}
+}
+
+// Loads the conventional TZ environment variable as the application timezone.
+func TestLoadParsesTZLocation(t *testing.T) {
+	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
+	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
+	t.Setenv("TZ", "Europe/Warsaw")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if cfg.TZ != "Europe/Warsaw" {
+		t.Fatalf("unexpected TZ: %s", cfg.TZ)
+	}
+	if cfg.Location.String() != "Europe/Warsaw" {
+		t.Fatalf("unexpected location: %s", cfg.Location)
+	}
+}
+
+// Reports an error when TZ is not a known IANA timezone name.
+func TestLoadRejectsInvalidTZ(t *testing.T) {
+	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
+	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
+	t.Setenv("TZ", "Mars/Base")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "TZ") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// Loads the today-import delay toggle from the environment.
+func TestLoadParsesTodayImportDelayToggle(t *testing.T) {
+	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
+	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
+	t.Setenv("GOOGLE_TODAY_IMPORT_DELAY", "true")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if !cfg.GoogleTodayImportDelay {
+		t.Fatal("expected today import delay to be enabled")
 	}
 }
 

@@ -94,7 +94,14 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		return nil, fmt.Errorf("create ticktick client: %w", err)
 	}
 
-	uc := googletasksync.New(google, ticktick, repo, cfg.GooglePostSyncAction)
+	uc := googletasksync.New(
+		google,
+		ticktick,
+		repo,
+		cfg.GooglePostSyncAction,
+		googletasksync.WithTodayImportDelay(cfg.GoogleTodayImportDelay),
+		googletasksync.WithLocation(cfg.Location),
+	)
 	a.jobs = []JobsRunner{googletasksyncjob.New(uc, cfg.PollInterval, googletasksyncjob.WithLogger(a.logger))}
 
 	return a, nil

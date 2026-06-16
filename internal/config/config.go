@@ -14,9 +14,12 @@ import (
 
 // Config holds environment-driven configuration for the service.
 type Config struct {
-	DBPath               string                        `env:"DB_PATH" envDefault:"./tick-sync.db"`
-	GooglePostSyncAction googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION" envDefault:"complete"`
-	PollInterval         time.Duration                 `env:"POLL_INTERVAL" envDefault:"5m"`
+	DBPath                 string                        `env:"DB_PATH" envDefault:"./tick-sync.db"`
+	GooglePostSyncAction   googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION" envDefault:"complete"`
+	GoogleTodayImportDelay bool                          `env:"GOOGLE_TODAY_IMPORT_DELAY" envDefault:"false"`
+	PollInterval           time.Duration                 `env:"POLL_INTERVAL" envDefault:"5m"`
+	TZ                     string                        `env:"TZ"`
+	Location               *time.Location                `env:"-"`
 
 	GoogleClientID     string    `env:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string    `env:"GOOGLE_CLIENT_SECRET"`
@@ -28,7 +31,6 @@ type Config struct {
 
 	TickTickAccessToken string `env:"TICKTICK_ACCESS_TOKEN"`
 	TickTickAPIBaseURL  string `env:"TICKTICK_API_BASE_URL" envDefault:"https://api.ticktick.com/open/v1"`
-	TickTickTimeZone    string `env:"TICKTICK_TIME_ZONE" envDefault:"UTC"`
 	TickTickProjectID   string `env:"TICKTICK_PROJECT_ID"`
 }
 
@@ -55,6 +57,15 @@ func Load() (Config, error) {
 	}
 	if cfg.PollInterval <= 0 {
 		return Config{}, fmt.Errorf("POLL_INTERVAL must be greater than zero")
+	}
+	if cfg.TZ == "" {
+		cfg.Location = time.Local
+	} else {
+		location, err := time.LoadLocation(cfg.TZ)
+		if err != nil {
+			return Config{}, fmt.Errorf("load TZ %q: %w", cfg.TZ, err)
+		}
+		cfg.Location = location
 	}
 
 	if err := cfg.Validate(); err != nil {

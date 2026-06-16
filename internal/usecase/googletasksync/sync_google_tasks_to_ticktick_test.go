@@ -65,6 +65,157 @@ func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault
 	assertResult(t, result, want)
 }
 
+// Leaves a Google task due today untouched when today imports are delayed.
+func TestUsecaseSyncGoogleTasksToTickTickDelaysTaskDueTodayWhenConfigured(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctrl := gomock.NewController(t)
+
+	google := mocks.NewMockGoogleTasksGateway(ctrl)
+	ticktick := mocks.NewMockTickTickGateway(ctrl)
+	repo := mocks.NewMockSyncedTaskRepository(ctrl)
+	now := time.Date(2026, 6, 12, 15, 0, 0, 0, time.UTC)
+
+	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{
+		{ID: "google-1", Title: "Remind me soon", Due: "2026-06-12T00:00:00.000Z"},
+	}, nil)
+
+	result, err := googletasksync.New(
+		google,
+		ticktick,
+		repo,
+		googletasksync.PostSyncActionComplete,
+		googletasksync.WithTodayImportDelay(true),
+		googletasksync.WithLocation(time.UTC),
+		googletasksync.WithClock(func() time.Time { return now }),
+	).Handle(ctx)
+	if err != nil {
+		t.Fatalf("sync google tasks to ticktick: %v", err)
+	}
+
+	want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 1, Delayed: 1}
+	assertResult(t, result, want)
+}
+
+// Imports a Google task due today immediately when today imports are not delayed.
+func TestUsecaseSyncGoogleTasksToTickTickImportsTaskDueTodayWhenDelayDisabled(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctrl := gomock.NewController(t)
+
+	google := mocks.NewMockGoogleTasksGateway(ctrl)
+	ticktick := mocks.NewMockTickTickGateway(ctrl)
+	repo := mocks.NewMockSyncedTaskRepository(ctrl)
+	now := time.Date(2026, 6, 12, 15, 0, 0, 0, time.UTC)
+
+	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{
+		{ID: "google-1", Title: "Remind me soon", Due: "2026-06-12T00:00:00.000Z"},
+	}, nil)
+	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	ticktick.EXPECT().CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
+		Title:              "Remind me soon",
+		Due:                "2026-06-12T00:00:00.000Z",
+		SourceGoogleTaskID: "google-1",
+	}).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
+	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
+	google.EXPECT().Complete(ctx, "google-1").Return(nil)
+
+	result, err := googletasksync.New(
+		google,
+		ticktick,
+		repo,
+		googletasksync.PostSyncActionComplete,
+		googletasksync.WithLocation(time.UTC),
+		googletasksync.WithClock(func() time.Time { return now }),
+	).Handle(ctx)
+	if err != nil {
+		t.Fatalf("sync google tasks to ticktick: %v", err)
+	}
+
+	want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 1, Created: 1, Completed: 1}
+	assertResult(t, result, want)
+}
+
+// Imports overdue Google tasks even when today imports are delayed.
+func TestUsecaseSyncGoogleTasksToTickTickImportsOverdueTaskWhenTodayDelayIsConfigured(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctrl := gomock.NewController(t)
+
+	google := mocks.NewMockGoogleTasksGateway(ctrl)
+	ticktick := mocks.NewMockTickTickGateway(ctrl)
+	repo := mocks.NewMockSyncedTaskRepository(ctrl)
+	now := time.Date(2026, 6, 12, 15, 0, 0, 0, time.UTC)
+
+	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{
+		{ID: "google-1", Title: "Yesterday task", Due: "2026-06-11T00:00:00.000Z"},
+	}, nil)
+	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	ticktick.EXPECT().CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
+		Title:              "Yesterday task",
+		Due:                "2026-06-11T00:00:00.000Z",
+		SourceGoogleTaskID: "google-1",
+	}).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
+	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
+	google.EXPECT().Complete(ctx, "google-1").Return(nil)
+
+	result, err := googletasksync.New(
+		google,
+		ticktick,
+		repo,
+		googletasksync.PostSyncActionComplete,
+		googletasksync.WithTodayImportDelay(true),
+		googletasksync.WithLocation(time.UTC),
+		googletasksync.WithClock(func() time.Time { return now }),
+	).Handle(ctx)
+	if err != nil {
+		t.Fatalf("sync google tasks to ticktick: %v", err)
+	}
+
+	want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 1, Created: 1, Completed: 1}
+	assertResult(t, result, want)
+}
+
+// Imports future Google tasks even when today imports are delayed.
+func TestUsecaseSyncGoogleTasksToTickTickImportsFutureTaskWhenTodayDelayIsConfigured(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctrl := gomock.NewController(t)
+
+	google := mocks.NewMockGoogleTasksGateway(ctrl)
+	ticktick := mocks.NewMockTickTickGateway(ctrl)
+	repo := mocks.NewMockSyncedTaskRepository(ctrl)
+	now := time.Date(2026, 6, 12, 15, 0, 0, 0, time.UTC)
+
+	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{
+		{ID: "google-1", Title: "Tomorrow task", Due: "2026-06-13T00:00:00.000Z"},
+	}, nil)
+	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	ticktick.EXPECT().CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
+		Title:              "Tomorrow task",
+		Due:                "2026-06-13T00:00:00.000Z",
+		SourceGoogleTaskID: "google-1",
+	}).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
+	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
+	google.EXPECT().Complete(ctx, "google-1").Return(nil)
+
+	result, err := googletasksync.New(
+		google,
+		ticktick,
+		repo,
+		googletasksync.PostSyncActionComplete,
+		googletasksync.WithTodayImportDelay(true),
+		googletasksync.WithLocation(time.UTC),
+		googletasksync.WithClock(func() time.Time { return now }),
+	).Handle(ctx)
+	if err != nil {
+		t.Fatalf("sync google tasks to ticktick: %v", err)
+	}
+
+	want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 1, Created: 1, Completed: 1}
+	assertResult(t, result, want)
+}
+
 // Deletes the Google task instead of completing it when the post-sync action is set to "delete".
 func TestUsecaseSyncGoogleTasksToTickTickDeletesTaskWhenConfigured(t *testing.T) {
 	t.Parallel()
@@ -237,6 +388,7 @@ func assertResult(
 	if got.Seen != want.Seen ||
 		got.Created != want.Created ||
 		got.Skipped != want.Skipped ||
+		got.Delayed != want.Delayed ||
 		got.Failed != want.Failed ||
 		got.Completed != want.Completed ||
 		got.Deleted != want.Deleted ||

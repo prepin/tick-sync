@@ -91,6 +91,7 @@ func (j *Job) logSyncResult(ctx context.Context, result googletasksync.SyncGoogl
 		slog.Int("seen", result.Seen),
 		slog.Int("created", result.Created),
 		slog.Int("skipped", result.Skipped),
+		slog.Int("delayed", result.Delayed),
 		slog.Int("failed", result.Failed),
 		slog.Int("completed", result.Completed),
 		slog.Int("deleted", result.Deleted),

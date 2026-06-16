@@ -71,7 +71,7 @@ TickTick's docs currently document the authorization code exchange clearly, but 
 ```env
 TICKTICK_ACCESS_TOKEN=your-ticktick-access-token
 TICKTICK_API_BASE_URL=https://api.ticktick.com/open/v1
-TICKTICK_TIME_ZONE=UTC
+TZ=Europe/Warsaw
 TICKTICK_PROJECT_ID=
 ```
 
@@ -82,7 +82,7 @@ Required variables when running sync:
 Optional variables:
 
 - `TICKTICK_API_BASE_URL`, defaults to `https://api.ticktick.com/open/v1`
-- `TICKTICK_TIME_ZONE`, defaults to `UTC`
+- `TZ`, defaults to the system local timezone when unset
 - `TICKTICK_PROJECT_ID`, defaults to empty
 
 ## Inbox Behavior

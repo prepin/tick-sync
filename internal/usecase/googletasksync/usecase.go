@@ -5,11 +5,13 @@ import "time"
 // SyncGoogleTasksToTickTickUseCase copies uncompleted Google tasks into TickTick
 // and completes or deletes the source tasks.
 type SyncGoogleTasksToTickTickUseCase struct {
-	google         GoogleTasksGateway
-	ticktick       TickTickGateway
-	repo           SyncedTaskRepository
-	postSyncAction PostSyncAction
-	now            func() time.Time
+	google            GoogleTasksGateway
+	ticktick          TickTickGateway
+	repo              SyncedTaskRepository
+	postSyncAction    PostSyncAction
+	delayTodayImports bool
+	location          *time.Location
+	now               func() time.Time
 }
 
 // Option configures the use case.
@@ -20,6 +22,22 @@ func WithClock(now func() time.Time) Option {
 	return func(u *SyncGoogleTasksToTickTickUseCase) {
 		if now != nil {
 			u.now = now
+		}
+	}
+}
+
+// WithTodayImportDelay delays importing Google tasks due today until they become overdue.
+func WithTodayImportDelay(enabled bool) Option {
+	return func(u *SyncGoogleTasksToTickTickUseCase) {
+		u.delayTodayImports = enabled
+	}
+}
+
+// WithLocation sets the location used for calendar-day decisions.
+func WithLocation(location *time.Location) Option {
+	return func(u *SyncGoogleTasksToTickTickUseCase) {
+		if location != nil {
+			u.location = location
 		}
 	}
 }
@@ -37,6 +55,7 @@ func New(
 		ticktick:       ticktick,
 		repo:           repo,
 		postSyncAction: postSyncAction,
+		location:       time.Local,
 		now:            time.Now,
 	}
 

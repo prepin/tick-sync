@@ -15,7 +15,6 @@ import (
 
 const (
 	defaultAPIBaseURL = "https://api.ticktick.com/open/v1"
-	defaultTimeZone   = "UTC"
 	maxErrorBodyBytes = 4096
 )
 
@@ -48,7 +47,7 @@ func New(cfg config.Config) (*Client, error) {
 		httpClient: http.DefaultClient,
 		baseURL:    apiBaseURL,
 		token:      cfg.TickTickAccessToken,
-		timeZone:   cmp.Or(cfg.TickTickTimeZone, defaultTimeZone),
+		timeZone:   cfg.TZ,
 		projectID:  cfg.TickTickProjectID,
 	}, nil
 }

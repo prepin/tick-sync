@@ -21,7 +21,7 @@ func TestNewRequiresAccessToken(t *testing.T) {
 	}
 }
 
-// Applies default API base URL and time zone when the config values are empty.
+// Applies the default API base URL and omits TickTick timezone when TZ is not configured.
 func TestNewAppliesDefaults(t *testing.T) {
 	t.Parallel()
 	client, err := New(config.Config{TickTickAccessToken: "ticktick-token"})
@@ -32,8 +32,8 @@ func TestNewAppliesDefaults(t *testing.T) {
 	if client.baseURL != defaultAPIBaseURL {
 		t.Fatalf("unexpected base url: %s", client.baseURL)
 	}
-	if client.timeZone != defaultTimeZone {
-		t.Fatalf("unexpected timezone: %s", client.timeZone)
+	if client.timeZone != "" {
+		t.Fatalf("expected empty timezone, got %s", client.timeZone)
 	}
 }
 
@@ -256,7 +256,7 @@ func newTestClient(t *testing.T, baseURL string, projectID string) *Client {
 	client, err := New(config.Config{
 		TickTickAccessToken: "ticktick-token",
 		TickTickAPIBaseURL:  baseURL,
-		TickTickTimeZone:    "UTC",
+		TZ:                  "UTC",
 		TickTickProjectID:   projectID,
 	})
 	if err != nil {

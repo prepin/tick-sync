@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 )
 
 // Handle runs one sync cycle.
@@ -29,6 +30,11 @@ func (u *SyncGoogleTasksToTickTickUseCase) syncTaskToTickTick(
 	googleTask GoogleTaskView,
 	result *SyncGoogleTasksToTickTickResult,
 ) error {
+	if u.shouldDelayTodayImport(googleTask) {
+		result.Delayed++
+		return nil
+	}
+
 	processed, err := u.repo.IsProcessed(ctx, googleTask.ID)
 	if err != nil {
 		return fmt.Errorf("check processed google task %s: %w", googleTask.ID, err)
@@ -76,4 +82,20 @@ func (u *SyncGoogleTasksToTickTickUseCase) syncTaskToTickTick(
 	}
 
 	return nil
+}
+
+func (u *SyncGoogleTasksToTickTickUseCase) shouldDelayTodayImport(googleTask GoogleTaskView) bool {
+	if !u.delayTodayImports || googleTask.Due == "" {
+		return false
+	}
+
+	due, err := time.Parse(time.RFC3339Nano, googleTask.Due)
+	if err != nil {
+		return false
+	}
+
+	dueYear, dueMonth, dueDay := due.Date()
+	nowYear, nowMonth, nowDay := u.now().In(u.location).Date()
+
+	return dueYear == nowYear && dueMonth == nowMonth && dueDay == nowDay
 }
