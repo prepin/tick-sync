@@ -15,7 +15,6 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
 	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
-	t.Setenv("GOOGLE_ACCESS_TOKEN", "")
 	t.Setenv("GOOGLE_TOKEN_TYPE", "")
 	t.Setenv("GOOGLE_TOKEN_EXPIRY", "")
 	t.Setenv("GOOGLE_TASKLIST_ID", "")

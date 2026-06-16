@@ -22,7 +22,6 @@ type Config struct {
 
 	GoogleClientID     string
 	GoogleClientSecret string
-	GoogleAccessToken  string
 	GoogleRefreshToken string
 	GoogleTokenType    string
 	GoogleTokenExpiry  time.Time
@@ -56,7 +55,6 @@ func Load() (Config, error) {
 		GooglePostSyncAction: postSyncAction,
 		GoogleClientID:       env("GOOGLE_CLIENT_ID"),
 		GoogleClientSecret:   env("GOOGLE_CLIENT_SECRET"),
-		GoogleAccessToken:    env("GOOGLE_ACCESS_TOKEN"),
 		GoogleRefreshToken:   env("GOOGLE_REFRESH_TOKEN"),
 		GoogleTokenType:      cmp.Or(env("GOOGLE_TOKEN_TYPE"), "Bearer"),
 		GoogleTaskListID:     cmp.Or(env("GOOGLE_TASKLIST_ID"), "@default"),

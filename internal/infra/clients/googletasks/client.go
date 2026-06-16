@@ -34,7 +34,6 @@ func New(ctx context.Context, cfg config.Config) (*Client, error) {
 		}
 
 		token := &oauth2.Token{
-			AccessToken:  cfg.GoogleAccessToken,
 			RefreshToken: cfg.GoogleRefreshToken,
 			TokenType:    cfg.GoogleTokenType,
 			Expiry:       cfg.GoogleTokenExpiry,

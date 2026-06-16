@@ -40,7 +40,6 @@ Create a local `.env` file or export these variables in your shell:
 GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
 GOOGLE_REFRESH_TOKEN=your-refresh-token
-GOOGLE_ACCESS_TOKEN=optional-access-token
 GOOGLE_TOKEN_TYPE=Bearer
 GOOGLE_TOKEN_EXPIRY=2026-06-10T12:00:00Z
 GOOGLE_TASKLIST_ID=@default
@@ -54,7 +53,6 @@ Required variables:
 
 Optional variables:
 
-- `GOOGLE_ACCESS_TOKEN`, optional because the service can refresh from `GOOGLE_REFRESH_TOKEN`
 - `GOOGLE_TOKEN_TYPE`, defaults to `Bearer`
 - `GOOGLE_TOKEN_EXPIRY`, defaults to an already-expired time so the token refreshes immediately
 - `GOOGLE_TASKLIST_ID`, defaults to `@default`
@@ -92,7 +90,7 @@ Steps:
 7. Click `Authorize APIs`.
 8. Select your Google account and allow access.
 9. After redirecting back to OAuth Playground, click `Exchange authorization code for tokens`.
-10. Copy the access token and refresh token into `.env`.
+10. Copy the refresh token into `.env`.
 
 Example `.env` values after token exchange:
 
@@ -100,7 +98,6 @@ Example `.env` values after token exchange:
 GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
 GOOGLE_REFRESH_TOKEN=copy-refresh-token-from-playground
-GOOGLE_ACCESS_TOKEN=optional-access-token-from-playground
 GOOGLE_TOKEN_TYPE=Bearer
 GOOGLE_TASKLIST_ID=@default
 ```
