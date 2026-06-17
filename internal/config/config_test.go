@@ -11,6 +11,7 @@ import (
 // Loads config with all defaults applied when environment variables are empty.
 func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	t.Setenv("DB_PATH", "")
+	t.Setenv("HTTP_ADDR", "")
 	t.Setenv("GOOGLE_POST_SYNC_ACTION", "")
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
@@ -22,6 +23,9 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	t.Setenv("GOOGLE_TODAY_IMPORT_DELAY", "")
 	t.Setenv("TZ", "")
 	t.Setenv("TICKTICK_API_BASE_URL", "")
+	t.Setenv("TICKTICK_REDIRECT_URL", "")
+	t.Setenv("TICKTICK_AUTH_URL", "")
+	t.Setenv("TICKTICK_TOKEN_URL", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -30,6 +34,9 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 
 	if cfg.DBPath != "./tick-sync.db" {
 		t.Fatalf("unexpected db path: %s", cfg.DBPath)
+	}
+	if cfg.HTTPAddr != ":8080" {
+		t.Fatalf("unexpected http addr: %s", cfg.HTTPAddr)
 	}
 	if cfg.GooglePostSyncAction != googletasksync.PostSyncActionComplete {
 		t.Fatalf("unexpected post sync action: %s", cfg.GooglePostSyncAction)
@@ -51,6 +58,15 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	}
 	if cfg.TickTickAPIBaseURL != "https://api.ticktick.com/open/v1" {
 		t.Fatalf("unexpected ticktick api base url: %s", cfg.TickTickAPIBaseURL)
+	}
+	if cfg.TickTickRedirectURL != "http://localhost:8080/ticktick/callback" {
+		t.Fatalf("unexpected ticktick redirect url: %s", cfg.TickTickRedirectURL)
+	}
+	if cfg.TickTickAuthURL != "https://ticktick.com/oauth/authorize" {
+		t.Fatalf("unexpected ticktick auth url: %s", cfg.TickTickAuthURL)
+	}
+	if cfg.TickTickTokenURL != "https://ticktick.com/oauth/token" {
+		t.Fatalf("unexpected ticktick token url: %s", cfg.TickTickTokenURL)
 	}
 }
 

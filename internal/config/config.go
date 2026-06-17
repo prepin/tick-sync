@@ -15,6 +15,7 @@ import (
 // Config holds environment-driven configuration for the service.
 type Config struct {
 	DBPath                 string                        `env:"DB_PATH" envDefault:"./tick-sync.db"`
+	HTTPAddr               string                        `env:"HTTP_ADDR" envDefault:":8080"`
 	GooglePostSyncAction   googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION" envDefault:"complete"`
 	GoogleTodayImportDelay bool                          `env:"GOOGLE_TODAY_IMPORT_DELAY" envDefault:"false"`
 	PollInterval           time.Duration                 `env:"POLL_INTERVAL" envDefault:"5m"`
@@ -29,9 +30,13 @@ type Config struct {
 	GoogleAPIEndpoint  string    `env:"GOOGLE_API_ENDPOINT"`
 	GoogleTaskListID   string    `env:"GOOGLE_TASKLIST_ID" envDefault:"@default"`
 
-	TickTickAccessToken string `env:"TICKTICK_ACCESS_TOKEN"`
-	TickTickAPIBaseURL  string `env:"TICKTICK_API_BASE_URL" envDefault:"https://api.ticktick.com/open/v1"`
-	TickTickProjectID   string `env:"TICKTICK_PROJECT_ID"`
+	TickTickClientID     string `env:"TICKTICK_CLIENT_ID"`
+	TickTickClientSecret string `env:"TICKTICK_CLIENT_SECRET"`
+	TickTickRedirectURL  string `env:"TICKTICK_REDIRECT_URL" envDefault:"http://localhost:8080/ticktick/callback"`
+	TickTickAuthURL      string `env:"TICKTICK_AUTH_URL" envDefault:"https://ticktick.com/oauth/authorize"`
+	TickTickTokenURL     string `env:"TICKTICK_TOKEN_URL" envDefault:"https://ticktick.com/oauth/token"`
+	TickTickAPIBaseURL   string `env:"TICKTICK_API_BASE_URL" envDefault:"https://api.ticktick.com/open/v1"`
+	TickTickProjectID    string `env:"TICKTICK_PROJECT_ID"`
 }
 
 // Load reads configuration from environment variables and applies defaults.

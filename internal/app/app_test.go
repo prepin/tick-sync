@@ -24,8 +24,7 @@ func TestNewRejectsDBOpenFailure(t *testing.T) {
 	ctx := t.Context()
 	dir := t.TempDir()
 	cfg := config.Config{
-		DBPath:              dir,
-		TickTickAccessToken: "test-token",
+		DBPath: dir,
 	}
 
 	_, err := New(ctx, cfg)
@@ -37,24 +36,22 @@ func TestNewRejectsDBOpenFailure(t *testing.T) {
 	}
 }
 
-// Does not create an app when the TickTick access token is missing.
-func TestNewRejectsMissingTickTickAccessToken(t *testing.T) {
+// Creates the app before TickTick is connected so the local auth page can store the token later.
+func TestNewAllowsMissingTickTickAccessToken(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 	cfg := config.Config{
-		DBPath:              dbPath,
-		GoogleAPIEndpoint:   "https://example.com/",
-		TickTickAccessToken: "",
+		DBPath:            dbPath,
+		GoogleAPIEndpoint: "https://example.com/",
+		PollInterval:      time.Minute,
 	}
 
-	_, err := New(ctx, cfg)
-	if err == nil {
-		t.Fatal("expected error")
+	application, err := New(ctx, cfg)
+	if err != nil {
+		t.Fatalf("new app: %v", err)
 	}
-	if !strings.Contains(err.Error(), "create ticktick client") {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	t.Cleanup(func() { application.Close() })
 }
 
 // Runs the sync job once and returns nil when the context is cancelled after the first execution.

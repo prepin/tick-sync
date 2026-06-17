@@ -1,10 +1,10 @@
 # TickTick Token Setup
 
-The first TickTick integration uses an access token from environment variables. The app does not run a TickTick OAuth flow yet.
+The app runs a local browser-based TickTick OAuth flow and stores the returned access token in SQLite. You no longer need to copy `TICKTICK_ACCESS_TOKEN` into `.env`.
 
 ## Required Scopes
 
-Use these TickTick OAuth scopes:
+The app requests these TickTick OAuth scopes:
 
 ```text
 tasks:read tasks:write
@@ -19,71 +19,45 @@ tasks:read tasks:write
 5. Set the OAuth redirect URL to:
 
 ```text
-http://localhost:8080/callback
+http://localhost:8080/ticktick/callback
 ```
-
-The local callback server does not need to exist for this manual setup. After authorization, copy the `code` value from the browser address bar.
-
-## Get Access Token
-
-Open this authorization URL in your browser after replacing `YOUR_CLIENT_ID`:
-
-```text
-https://ticktick.com/oauth/authorize?scope=tasks:read%20tasks:write&client_id=YOUR_CLIENT_ID&state=tick-sync&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fcallback&response_type=code
-```
-
-Approve access. TickTick redirects to a URL like:
-
-```text
-http://localhost:8080/callback?code=AUTH_CODE&state=tick-sync
-```
-
-The page may fail to load because no local server is running. That is fine. Copy `AUTH_CODE` from the address bar.
-
-Exchange the authorization code for an access token:
-
-```sh
-curl -X POST https://ticktick.com/oauth/token \
-  -u 'YOUR_CLIENT_ID:YOUR_CLIENT_SECRET' \
-  -H 'Content-Type: application/x-www-form-urlencoded' \
-  --data-urlencode 'code=AUTH_CODE' \
-  --data-urlencode 'grant_type=authorization_code' \
-  --data-urlencode 'scope=tasks:read tasks:write' \
-  --data-urlencode 'redirect_uri=http://localhost:8080/callback'
-```
-
-The response should contain:
-
-```json
-{
-  "access_token": "...",
-  "token_type": "bearer",
-  "expires_in": 86400
-}
-```
-
-Copy `access_token` into `.env` as `TICKTICK_ACCESS_TOKEN`.
-
-TickTick's docs currently document the authorization code exchange clearly, but do not clearly document refresh-token behavior. If the token expires and no refresh token is returned, repeat this manual flow until the app has a proper OAuth/token-refresh implementation.
 
 ## Environment Variables
 
 ```env
-TICKTICK_ACCESS_TOKEN=your-ticktick-access-token
+HTTP_ADDR=:8080
+TICKTICK_CLIENT_ID=your-ticktick-client-id
+TICKTICK_CLIENT_SECRET=your-ticktick-client-secret
+TICKTICK_REDIRECT_URL=http://localhost:8080/ticktick/callback
 TICKTICK_API_BASE_URL=https://api.ticktick.com/open/v1
-TZ=Europe/Warsaw
 TICKTICK_PROJECT_ID=
 ```
 
-Required variables when running sync:
-
-- `TICKTICK_ACCESS_TOKEN`
-
 Optional variables:
 
+- `HTTP_ADDR`, defaults to `:8080`
+- `TICKTICK_REDIRECT_URL`, defaults to `http://localhost:8080/ticktick/callback`
 - `TICKTICK_API_BASE_URL`, defaults to `https://api.ticktick.com/open/v1`
-- `TZ`, defaults to the system local timezone when unset
 - `TICKTICK_PROJECT_ID`, defaults to empty
+- `TZ`, defaults to the system local timezone when unset
+
+## Connect TickTick
+
+Start the service:
+
+```sh
+go run ./cmd/app
+```
+
+Open the local start page:
+
+```text
+http://localhost:8080/
+```
+
+Click `Connect TickTick`, approve access, and the callback page saves the token in the configured SQLite database.
+
+The sync job starts before TickTick is connected. If Google tasks need to be copied while no TickTick token exists, that sync tick logs a missing token error and the next poll retries.
 
 ## Inbox Behavior
 
@@ -110,7 +84,6 @@ Content-Type: application/json
 Due dates use this format:
 
 ```text
-yyyy-MM-dd'T'HH:mm:ssZ
 ```
 
 Example:
@@ -121,6 +94,6 @@ Example:
 
 ## Security
 
-Do not commit `.env`, access tokens, client secrets, or copied OAuth responses.
+Do not commit `.env`, client secrets, access tokens, or copied OAuth responses. The access token is stored in the configured SQLite database.
 
 For running the sync command, see [`docs/sync.md`](sync.md).

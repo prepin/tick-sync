@@ -17,6 +17,11 @@ func (c *Client) CreateInboxTask(
 	ctx context.Context,
 	input googletasksync.CreateTickTickTaskInput,
 ) (googletasksync.TickTickTaskView, error) {
+	token, err := c.tokenProvider.GetAccessToken(ctx)
+	if err != nil {
+		return googletasksync.TickTickTaskView{}, err
+	}
+
 	requestBody, err := toCreateTaskRequest(input, c.projectID, c.timeZone)
 	if err != nil {
 		return googletasksync.TickTickTaskView{}, err
@@ -36,7 +41,7 @@ func (c *Client) CreateInboxTask(
 	if err != nil {
 		return googletasksync.TickTickTaskView{}, fmt.Errorf("create ticktick request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 

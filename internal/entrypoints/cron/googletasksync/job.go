@@ -56,7 +56,6 @@ func (j *Job) run(ctx context.Context) {
 
 	if err := j.Execute(ctx); err != nil {
 		j.logger.ErrorContext(ctx, "job initial sync failed", "job", j.Name(), "error", err)
-		return
 	}
 
 	ticker := time.NewTicker(j.interval)

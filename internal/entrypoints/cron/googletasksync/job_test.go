@@ -55,8 +55,8 @@ func TestJobStartExecutesSyncAndStopsOnCancel(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 }
 
-// Does not enter the ticker loop when the initial Execute call fails: the goroutine exits after the single failed attempt.
-func TestJobStartDoesNotEnterTickerLoopOnExecuteFailure(t *testing.T) {
+// Continues polling after the initial sync fails so a later auth token can unblock future ticks.
+func TestJobStartContinuesAfterInitialExecuteFailure(t *testing.T) {
 	t.Parallel()
 	ctrl := gomock.NewController(t)
 	t.Cleanup(ctrl.Finish)
@@ -65,15 +65,27 @@ func TestJobStartDoesNotEnterTickerLoopOnExecuteFailure(t *testing.T) {
 	ticktick := mocks.NewMockTickTickGateway(ctrl)
 	repo := mocks.NewMockSyncedTaskRepository(ctrl)
 
-	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, errors.New("google unavailable"))
+	ctx, cancel := context.WithCancel(t.Context())
+	done := make(chan struct{})
+	gomock.InOrder(
+		google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, errors.New("google unavailable")),
+		google.EXPECT().ListUncompleted(gomock.Any()).DoAndReturn(func(context.Context) ([]googletasksync.GoogleTaskView, error) {
+			cancel()
+			close(done)
+			return nil, nil
+		}),
+	)
+	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
-	job := cron.New(uc, time.Minute)
+	job := cron.New(uc, 10*time.Millisecond)
 
-	ctx, cancel := context.WithCancel(t.Context())
 	job.Start(ctx)
-	time.Sleep(50 * time.Millisecond)
-	cancel()
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("expected job to continue after initial failure")
+	}
 }
 
 // Returns the result from the usecase and reports a nil error when all tasks sync successfully.

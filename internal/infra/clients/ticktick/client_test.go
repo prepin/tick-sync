@@ -1,21 +1,26 @@
 package ticktick
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/prepin/tick-sync/internal/config"
+	"github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
+	"github.com/prepin/tick-sync/internal/infra/sqlite/tickticktokens"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
+	_ "modernc.org/sqlite"
 )
 
-// Does not create a client when the TickTick access token is not provided.
-func TestNewRequiresAccessToken(t *testing.T) {
+// Does not create a client when token storage is not provided.
+func TestNewRejectsMissingTokenProvider(t *testing.T) {
 	t.Parallel()
-	_, err := New(config.Config{TickTickAPIBaseURL: "https://example.com"})
+	_, err := New(config.Config{TickTickAPIBaseURL: "https://example.com"}, nil)
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -24,7 +29,7 @@ func TestNewRequiresAccessToken(t *testing.T) {
 // Applies the default API base URL and omits TickTick timezone when TZ is not configured.
 func TestNewAppliesDefaults(t *testing.T) {
 	t.Parallel()
-	client, err := New(config.Config{TickTickAccessToken: "ticktick-token"})
+	client, err := New(config.Config{}, newTestTokenRepo(t))
 	if err != nil {
 		t.Fatalf("new ticktick client: %v", err)
 	}
@@ -41,11 +46,24 @@ func TestNewAppliesDefaults(t *testing.T) {
 func TestNewRejectsRelativeBaseURL(t *testing.T) {
 	t.Parallel()
 	_, err := New(config.Config{
-		TickTickAccessToken: "ticktick-token",
-		TickTickAPIBaseURL:  "/open/v1",
-	})
+		TickTickAPIBaseURL: "/open/v1",
+	}, newTestTokenRepo(t))
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+// Does not create a task when TickTick has not been connected yet.
+func TestCreateInboxTaskReportsMissingStoredToken(t *testing.T) {
+	t.Parallel()
+	client, err := New(config.Config{TickTickAPIBaseURL: "https://example.com"}, newTestTokenRepo(t))
+	if err != nil {
+		t.Fatalf("new ticktick client: %v", err)
+	}
+
+	_, err = client.CreateInboxTask(t.Context(), googletasksync.CreateTickTickTaskInput{Title: "Buy milk"})
+	if !errors.Is(err, tickticktokens.ErrTokenNotFound) {
+		t.Fatalf("expected missing token error, got %v", err)
 	}
 }
 
@@ -254,16 +272,57 @@ func newTestClient(t *testing.T, baseURL string, projectID string) *Client {
 	t.Helper()
 
 	client, err := New(config.Config{
-		TickTickAccessToken: "ticktick-token",
-		TickTickAPIBaseURL:  baseURL,
-		TZ:                  "UTC",
-		TickTickProjectID:   projectID,
-	})
+		TickTickAPIBaseURL: baseURL,
+		TZ:                 "UTC",
+		TickTickProjectID:  projectID,
+	}, newTestTokenRepoWithToken(t))
 	if err != nil {
 		t.Fatalf("new ticktick client: %v", err)
 	}
 
 	return client
+}
+
+// Creates a TickTick token repo with no stored token for client construction tests.
+func newTestTokenRepo(t *testing.T) *tickticktokens.Repo {
+	t.Helper()
+
+	repo, err := tickticktokens.New(openTestDB(t))
+	if err != nil {
+		t.Fatalf("new ticktick token repo: %v", err)
+	}
+	return repo
+}
+
+// Creates a TickTick token repo with a stored access token for API request tests.
+func newTestTokenRepoWithToken(t *testing.T) *tickticktokens.Repo {
+	t.Helper()
+
+	repo := newTestTokenRepo(t)
+	if err := repo.Save(t.Context(), tickticktokens.Token{AccessToken: "ticktick-token", TokenType: "bearer"}); err != nil {
+		t.Fatalf("save ticktick token: %v", err)
+	}
+	return repo
+}
+
+// Opens a temporary SQLite database with migrations applied for token-backed client tests.
+func openTestDB(t *testing.T) *sql.DB {
+	t.Helper()
+
+	db, err := sql.Open("sqlite", filepath.Join(t.TempDir(), "tick-sync.db"))
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	if err := migrate.Up(t.Context(), db); err != nil {
+		db.Close()
+		t.Fatalf("run sqlite migrations: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Fatalf("close sqlite db: %v", err)
+		}
+	})
+	return db
 }
 
 // Asserts that the given body map contains a string value at the named key matching the expected value.

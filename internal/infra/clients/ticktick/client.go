@@ -3,6 +3,7 @@ package ticktick
 
 import (
 	"cmp"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -20,17 +21,22 @@ const (
 
 // Client is the TickTick HTTP API adapter.
 type Client struct {
-	httpClient *http.Client
-	baseURL    string
-	token      string
-	timeZone   string
-	projectID  string
+	httpClient    *http.Client
+	tokenProvider AccessTokenProvider
+	baseURL       string
+	timeZone      string
+	projectID     string
+}
+
+// AccessTokenProvider provides the current TickTick API bearer token.
+type AccessTokenProvider interface {
+	GetAccessToken(ctx context.Context) (string, error)
 }
 
 // New creates a TickTick client from config.
-func New(cfg config.Config) (*Client, error) {
-	if cfg.TickTickAccessToken == "" {
-		return nil, errors.New("missing required environment variable: TICKTICK_ACCESS_TOKEN")
+func New(cfg config.Config, tokenProvider AccessTokenProvider) (*Client, error) {
+	if tokenProvider == nil {
+		return nil, errors.New("ticktick client: token provider is nil")
 	}
 
 	apiBaseURL := cmp.Or(cfg.TickTickAPIBaseURL, defaultAPIBaseURL)
@@ -44,11 +50,11 @@ func New(cfg config.Config) (*Client, error) {
 	}
 
 	return &Client{
-		httpClient: http.DefaultClient,
-		baseURL:    apiBaseURL,
-		token:      cfg.TickTickAccessToken,
-		timeZone:   cfg.TZ,
-		projectID:  cfg.TickTickProjectID,
+		httpClient:    http.DefaultClient,
+		tokenProvider: tokenProvider,
+		baseURL:       apiBaseURL,
+		timeZone:      cfg.TZ,
+		projectID:     cfg.TickTickProjectID,
 	}, nil
 }
 

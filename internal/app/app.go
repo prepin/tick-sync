@@ -12,10 +12,12 @@ import (
 
 	"github.com/prepin/tick-sync/internal/config"
 	googletasksyncjob "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
+	"github.com/prepin/tick-sync/internal/entrypoints/httpserver"
 	googletasks "github.com/prepin/tick-sync/internal/infra/clients/googletasks"
 	ticktick "github.com/prepin/tick-sync/internal/infra/clients/ticktick"
 	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
 	sqlitemigrate "github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
+	"github.com/prepin/tick-sync/internal/infra/sqlite/tickticktokens"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
@@ -32,6 +34,7 @@ type App struct {
 	cfg    config.Config
 	db     *sql.DB
 	jobs   []JobsRunner
+	web    JobsRunner
 	logger *slog.Logger
 }
 
@@ -67,6 +70,14 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	}
 
 	if a.jobs != nil {
+		tokenRepo, err := tickticktokens.New(db)
+		if err != nil {
+			if closeErr := db.Close(); closeErr != nil {
+				a.logger.WarnContext(ctx, "close db after ticktick token repo init failure", "error", closeErr)
+			}
+			return nil, fmt.Errorf("create ticktick token repo: %w", err)
+		}
+		a.web = httpserver.New(cfg, tokenRepo, httpserver.WithLogger(a.logger))
 		return a, nil
 	}
 
@@ -86,7 +97,15 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		return nil, fmt.Errorf("create google tasks client: %w", err)
 	}
 
-	ticktick, err := ticktick.New(cfg)
+	tokenRepo, err := tickticktokens.New(db)
+	if err != nil {
+		if closeErr := db.Close(); closeErr != nil {
+			a.logger.WarnContext(ctx, "close db after ticktick token repo init failure", "error", closeErr)
+		}
+		return nil, fmt.Errorf("create ticktick token repo: %w", err)
+	}
+
+	ticktick, err := ticktick.New(cfg, tokenRepo)
 	if err != nil {
 		if closeErr := db.Close(); closeErr != nil {
 			a.logger.WarnContext(ctx, "close db after ticktick client init failure", "error", closeErr)
@@ -103,6 +122,7 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		googletasksync.WithLocation(cfg.Location),
 	)
 	a.jobs = []JobsRunner{googletasksyncjob.New(uc, cfg.PollInterval, googletasksyncjob.WithLogger(a.logger))}
+	a.web = httpserver.New(cfg, tokenRepo, httpserver.WithLogger(a.logger))
 
 	return a, nil
 }
@@ -113,6 +133,9 @@ func (a *App) Run(ctx context.Context) error {
 
 	for _, job := range a.jobs {
 		job.Start(ctx)
+	}
+	if a.web != nil {
+		a.web.Start(ctx)
 	}
 
 	<-ctx.Done()
