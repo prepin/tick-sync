@@ -12,7 +12,7 @@ import (
 
 	"github.com/prepin/tick-sync/internal/config"
 	"github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
-	"github.com/prepin/tick-sync/internal/infra/sqlite/tickticktokens"
+	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	_ "modernc.org/sqlite"
 )
@@ -62,7 +62,7 @@ func TestCreateInboxTaskReportsMissingStoredToken(t *testing.T) {
 	}
 
 	_, err = client.CreateInboxTask(t.Context(), googletasksync.CreateTickTickTaskInput{Title: "Buy milk"})
-	if !errors.Is(err, tickticktokens.ErrTokenNotFound) {
+	if !errors.Is(err, oauthtokens.ErrTokenNotFound) {
 		t.Fatalf("expected missing token error, got %v", err)
 	}
 }
@@ -306,10 +306,10 @@ func newTestClient(t *testing.T, baseURL string, projectID string) *Client {
 }
 
 // Creates a TickTick token repo with no stored token for client construction tests.
-func newTestTokenRepo(t *testing.T) *tickticktokens.Repo {
+func newTestTokenRepo(t *testing.T) *oauthtokens.Repo {
 	t.Helper()
 
-	repo, err := tickticktokens.New(openTestDB(t))
+	repo, err := oauthtokens.New(openTestDB(t))
 	if err != nil {
 		t.Fatalf("new ticktick token repo: %v", err)
 	}
@@ -317,11 +317,11 @@ func newTestTokenRepo(t *testing.T) *tickticktokens.Repo {
 }
 
 // Creates a TickTick token repo with a stored access token for API request tests.
-func newTestTokenRepoWithToken(t *testing.T) *tickticktokens.Repo {
+func newTestTokenRepoWithToken(t *testing.T) *oauthtokens.Repo {
 	t.Helper()
 
 	repo := newTestTokenRepo(t)
-	if err := repo.Save(t.Context(), tickticktokens.Token{AccessToken: "ticktick-token", TokenType: "bearer"}); err != nil {
+	if err := repo.Save(t.Context(), oauthtokens.ProviderTickTick, oauthtokens.Token{AccessToken: "ticktick-token", TokenType: "bearer"}); err != nil {
 		t.Fatalf("save ticktick token: %v", err)
 	}
 	return repo

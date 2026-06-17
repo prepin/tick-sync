@@ -30,7 +30,7 @@ type Client struct {
 
 // AccessTokenProvider provides the current TickTick API bearer token.
 type AccessTokenProvider interface {
-	GetAccessToken(ctx context.Context) (string, error)
+	GetAccessToken(ctx context.Context, provider string) (string, error)
 }
 
 // New creates a TickTick client from config.

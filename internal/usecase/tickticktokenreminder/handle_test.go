@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/mock/gomock"
 
-	"github.com/prepin/tick-sync/internal/infra/sqlite/tickticktokens"
+	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"github.com/prepin/tick-sync/internal/usecase/tickticktokenreminder/mocks"
 )
@@ -22,7 +22,7 @@ func TestHandleIgnoresMissingToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	tokens := mocks.NewMockTokenRepository(ctrl)
 	ticktick := mocks.NewMockTickTickGateway(ctrl)
-	tokens.EXPECT().Get(gomock.Any()).Return(tickticktokens.Token{}, tickticktokens.ErrTokenNotFound)
+	tokens.EXPECT().Get(gomock.Any(), oauthtokens.ProviderTickTick).Return(oauthtokens.Token{}, oauthtokens.ErrTokenNotFound)
 
 	uc := New(tokens, ticktick, WithNow(func() time.Time { return reminderNow }))
 	if err := uc.Handle(t.Context()); err != nil {
@@ -36,7 +36,7 @@ func TestHandleIgnoresTokenWithoutExpiry(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	tokens := mocks.NewMockTokenRepository(ctrl)
 	ticktick := mocks.NewMockTickTickGateway(ctrl)
-	tokens.EXPECT().Get(gomock.Any()).Return(tokenFixture(), nil)
+	tokens.EXPECT().Get(gomock.Any(), oauthtokens.ProviderTickTick).Return(tokenFixture(), nil)
 
 	uc := New(tokens, ticktick, WithNow(func() time.Time { return reminderNow }))
 	if err := uc.Handle(t.Context()); err != nil {
@@ -52,7 +52,7 @@ func TestHandleIgnoresTokenExpiringAfterTwoWeeks(t *testing.T) {
 	ticktick := mocks.NewMockTickTickGateway(ctrl)
 	token := tokenFixture()
 	token.ExpiresAt = reminderNow.Add(14*24*time.Hour + time.Second)
-	tokens.EXPECT().Get(gomock.Any()).Return(token, nil)
+	tokens.EXPECT().Get(gomock.Any(), oauthtokens.ProviderTickTick).Return(token, nil)
 
 	uc := New(tokens, ticktick, WithNow(func() time.Time { return reminderNow }))
 	if err := uc.Handle(t.Context()); err != nil {
@@ -69,7 +69,7 @@ func TestHandleIgnoresTokenWithExistingReminder(t *testing.T) {
 	token := tokenFixture()
 	token.ExpiresAt = reminderNow.Add(24 * time.Hour)
 	token.RefreshReminderTaskID = "task-1"
-	tokens.EXPECT().Get(gomock.Any()).Return(token, nil)
+	tokens.EXPECT().Get(gomock.Any(), oauthtokens.ProviderTickTick).Return(token, nil)
 
 	uc := New(tokens, ticktick, WithNow(func() time.Time { return reminderNow }))
 	if err := uc.Handle(t.Context()); err != nil {
@@ -85,7 +85,7 @@ func TestHandleCreatesReminderForTokenExpiringWithinTwoWeeks(t *testing.T) {
 	ticktick := mocks.NewMockTickTickGateway(ctrl)
 	token := tokenFixture()
 	token.ExpiresAt = reminderNow.Add(24 * time.Hour)
-	tokens.EXPECT().Get(gomock.Any()).Return(token, nil)
+	tokens.EXPECT().Get(gomock.Any(), oauthtokens.ProviderTickTick).Return(token, nil)
 	ticktick.EXPECT().CreateInboxTask(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, input googletasksync.CreateTickTickTaskInput) (googletasksync.TickTickTaskView, error) {
 			if input.Title != "Refresh TickTick token" {
@@ -103,7 +103,7 @@ func TestHandleCreatesReminderForTokenExpiringWithinTwoWeeks(t *testing.T) {
 			return googletasksync.TickTickTaskView{ID: "task-1"}, nil
 		},
 	)
-	tokens.EXPECT().MarkRefreshReminderCreated(gomock.Any(), "access-1", "task-1", reminderNow).Return(nil)
+	tokens.EXPECT().MarkRefreshReminderCreated(gomock.Any(), oauthtokens.ProviderTickTick, "access-1", "task-1", reminderNow).Return(nil)
 
 	uc := New(tokens, ticktick, WithNow(func() time.Time { return reminderNow }))
 	if err := uc.Handle(t.Context()); err != nil {
@@ -119,7 +119,7 @@ func TestHandleReportsReminderCreationFailure(t *testing.T) {
 	ticktick := mocks.NewMockTickTickGateway(ctrl)
 	token := tokenFixture()
 	token.ExpiresAt = reminderNow.Add(24 * time.Hour)
-	tokens.EXPECT().Get(gomock.Any()).Return(token, nil)
+	tokens.EXPECT().Get(gomock.Any(), oauthtokens.ProviderTickTick).Return(token, nil)
 	ticktick.EXPECT().CreateInboxTask(gomock.Any(), gomock.Any()).Return(googletasksync.TickTickTaskView{}, errors.New("ticktick unavailable"))
 
 	uc := New(tokens, ticktick, WithNow(func() time.Time { return reminderNow }))
@@ -133,6 +133,6 @@ func TestHandleReportsReminderCreationFailure(t *testing.T) {
 }
 
 // Returns a default token with no expiry or reminder marker.
-func tokenFixture() tickticktokens.Token {
-	return tickticktokens.Token{AccessToken: "access-1"}
+func tokenFixture() oauthtokens.Token {
+	return oauthtokens.Token{AccessToken: "access-1"}
 }

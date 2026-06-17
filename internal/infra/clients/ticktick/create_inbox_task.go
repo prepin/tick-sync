@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
@@ -17,7 +18,7 @@ func (c *Client) CreateInboxTask(
 	ctx context.Context,
 	input googletasksync.CreateTickTickTaskInput,
 ) (googletasksync.TickTickTaskView, error) {
-	token, err := c.tokenProvider.GetAccessToken(ctx)
+	token, err := c.tokenProvider.GetAccessToken(ctx, oauthtokens.ProviderTickTick)
 	if err != nil {
 		return googletasksync.TickTickTaskView{}, err
 	}

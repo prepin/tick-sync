@@ -1,4 +1,4 @@
-package tickticktokens
+package oauthtokens
 
 import (
 	"context"
@@ -9,17 +9,17 @@ import (
 
 const queryGetToken = `
 SELECT access_token, token_type, scope, expires_at, refresh_token, updated_at, refresh_reminder_task_id, refresh_reminder_created_at
-FROM ticktick_tokens
+FROM oauth_tokens
 WHERE provider = ?;`
 
-// Get returns the latest stored TickTick OAuth token.
-func (r *Repo) Get(ctx context.Context) (Token, error) {
+// Get returns the latest stored OAuth token for a provider.
+func (r *Repo) Get(ctx context.Context, provider string) (Token, error) {
 	var token Token
 	var expiresAt string
 	var updatedAt string
 	var refreshReminderTaskID sql.NullString
 	var refreshReminderCreatedAt sql.NullString
-	err := r.db.QueryRowContext(ctx, queryGetToken, providerTickTick).Scan(
+	err := r.db.QueryRowContext(ctx, queryGetToken, provider).Scan(
 		&token.AccessToken,
 		&token.TokenType,
 		&token.Scope,
@@ -33,31 +33,22 @@ func (r *Repo) Get(ctx context.Context) (Token, error) {
 		return Token{}, ErrTokenNotFound
 	}
 	if err != nil {
-		return Token{}, fmt.Errorf("get ticktick token: %w", err)
+		return Token{}, fmt.Errorf("get oauth token %s: %w", provider, err)
 	}
 
 	token.ExpiresAt, err = parseOptionalTime(expiresAt)
 	if err != nil {
-		return Token{}, fmt.Errorf("parse ticktick token expiry: %w", err)
+		return Token{}, fmt.Errorf("parse oauth token expiry: %w", err)
 	}
 	token.UpdatedAt, err = parseOptionalTime(updatedAt)
 	if err != nil {
-		return Token{}, fmt.Errorf("parse ticktick token update time: %w", err)
+		return Token{}, fmt.Errorf("parse oauth token update time: %w", err)
 	}
 	token.RefreshReminderTaskID = refreshReminderTaskID.String
 	token.RefreshReminderCreatedAt, err = parseOptionalTime(refreshReminderCreatedAt.String)
 	if err != nil {
-		return Token{}, fmt.Errorf("parse ticktick refresh reminder creation time: %w", err)
+		return Token{}, fmt.Errorf("parse oauth token refresh reminder creation time: %w", err)
 	}
 
 	return token, nil
-}
-
-// GetAccessToken returns only the bearer token value required by the TickTick API client.
-func (r *Repo) GetAccessToken(ctx context.Context) (string, error) {
-	token, err := r.Get(ctx)
-	if err != nil {
-		return "", err
-	}
-	return token.AccessToken, nil
 }

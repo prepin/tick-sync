@@ -14,7 +14,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	tickticktokens "github.com/prepin/tick-sync/internal/infra/sqlite/tickticktokens"
+	oauthtokens "github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -43,30 +43,30 @@ func (m *MockTokenRepository) EXPECT() *MockTokenRepositoryMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockTokenRepository) Get(ctx context.Context) (tickticktokens.Token, error) {
+func (m *MockTokenRepository) Get(ctx context.Context, provider string) (oauthtokens.Token, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx)
-	ret0, _ := ret[0].(tickticktokens.Token)
+	ret := m.ctrl.Call(m, "Get", ctx, provider)
+	ret0, _ := ret[0].(oauthtokens.Token)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockTokenRepositoryMockRecorder) Get(ctx any) *gomock.Call {
+func (mr *MockTokenRepositoryMockRecorder) Get(ctx, provider any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTokenRepository)(nil).Get), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTokenRepository)(nil).Get), ctx, provider)
 }
 
 // MarkRefreshReminderCreated mocks base method.
-func (m *MockTokenRepository) MarkRefreshReminderCreated(ctx context.Context, accessToken, taskID string, createdAt time.Time) error {
+func (m *MockTokenRepository) MarkRefreshReminderCreated(ctx context.Context, provider, accessToken, taskID string, createdAt time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkRefreshReminderCreated", ctx, accessToken, taskID, createdAt)
+	ret := m.ctrl.Call(m, "MarkRefreshReminderCreated", ctx, provider, accessToken, taskID, createdAt)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MarkRefreshReminderCreated indicates an expected call of MarkRefreshReminderCreated.
-func (mr *MockTokenRepositoryMockRecorder) MarkRefreshReminderCreated(ctx, accessToken, taskID, createdAt any) *gomock.Call {
+func (mr *MockTokenRepositoryMockRecorder) MarkRefreshReminderCreated(ctx, provider, accessToken, taskID, createdAt any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkRefreshReminderCreated", reflect.TypeOf((*MockTokenRepository)(nil).MarkRefreshReminderCreated), ctx, accessToken, taskID, createdAt)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkRefreshReminderCreated", reflect.TypeOf((*MockTokenRepository)(nil).MarkRefreshReminderCreated), ctx, provider, accessToken, taskID, createdAt)
 }

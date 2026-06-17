@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/prepin/tick-sync/internal/config"
-	"github.com/prepin/tick-sync/internal/infra/sqlite/tickticktokens"
+	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
 )
 
 // Server runs the local web UI.
@@ -69,20 +69,20 @@ func (s *Server) run(ctx context.Context) {
 
 // TokenStore is the storage required by the auth handlers.
 type TokenStore interface {
-	Get(ctx context.Context) (tickticktokens.Token, error)
-	Save(ctx context.Context, token tickticktokens.Token) error
+	Get(ctx context.Context, provider string) (oauthtokens.Token, error)
+	Save(ctx context.Context, provider string, token oauthtokens.Token) error
 }
 
-func statusText(ctx context.Context, tokens TokenStore) string {
-	token, err := tokens.Get(ctx)
+func statusText(ctx context.Context, tokens TokenStore, provider string, name string) string {
+	token, err := tokens.Get(ctx, provider)
 	if err == nil {
 		if token.ExpiresAt.IsZero() {
-			return "TickTick is connected."
+			return name + " is connected."
 		}
-		return fmt.Sprintf("TickTick is connected. Token expires at %s.", token.ExpiresAt.Format(time.RFC3339))
+		return fmt.Sprintf("%s is connected. Token expires at %s.", name, token.ExpiresAt.Format(time.RFC3339))
 	}
-	if errors.Is(err, tickticktokens.ErrTokenNotFound) {
-		return "TickTick is not connected."
+	if errors.Is(err, oauthtokens.ErrTokenNotFound) {
+		return name + " is not connected."
 	}
-	return "TickTick token status is unavailable."
+	return name + " token status is unavailable."
 }

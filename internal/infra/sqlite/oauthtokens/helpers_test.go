@@ -1,4 +1,4 @@
-package tickticktokens
+package oauthtokens
 
 import (
 	"database/sql"
@@ -16,7 +16,7 @@ func newTestRepo(t *testing.T) *Repo {
 
 	repo, err := New(openTestDB(t))
 	if err != nil {
-		t.Fatalf("new ticktick token repo: %v", err)
+		t.Fatalf("new oauth token repo: %v", err)
 	}
 	return repo
 }
@@ -41,7 +41,7 @@ func openTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
-// Returns a default TickTick token fixture.
+// Returns a default OAuth token fixture.
 func tokenFixture() Token {
 	return Token{
 		AccessToken:  "access-1",

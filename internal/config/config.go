@@ -25,11 +25,13 @@ type Config struct {
 
 	GoogleClientID     string    `env:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string    `env:"GOOGLE_CLIENT_SECRET"`
-	GoogleRefreshToken string    `env:"GOOGLE_REFRESH_TOKEN"`
 	GoogleTokenType    string    `env:"GOOGLE_TOKEN_TYPE" envDefault:"Bearer"`
 	GoogleTokenExpiry  time.Time `env:"GOOGLE_TOKEN_EXPIRY"`
 	GoogleAPIEndpoint  string    `env:"GOOGLE_API_ENDPOINT"`
 	GoogleTaskListID   string    `env:"GOOGLE_TASKLIST_ID" envDefault:"@default"`
+	GoogleRedirectURL  string    `env:"GOOGLE_REDIRECT_URL" envDefault:"http://localhost:8080/google/callback"`
+	GoogleAuthURL      string    `env:"GOOGLE_AUTH_URL" envDefault:"https://accounts.google.com/o/oauth2/v2/auth"`
+	GoogleTokenURL     string    `env:"GOOGLE_TOKEN_URL" envDefault:"https://oauth2.googleapis.com/token"`
 
 	TickTickClientID     string `env:"TICKTICK_CLIENT_ID"`
 	TickTickClientSecret string `env:"TICKTICK_CLIENT_SECRET"`
@@ -94,10 +96,6 @@ func (c Config) Validate() error {
 	if c.GoogleClientSecret == "" {
 		missing = append(missing, "GOOGLE_CLIENT_SECRET")
 	}
-	if c.GoogleRefreshToken == "" {
-		missing = append(missing, "GOOGLE_REFRESH_TOKEN")
-	}
-
 	if len(missing) > 0 {
 		return fmt.Errorf("missing required environment variables: %s", strings.Join(missing, ", "))
 	}

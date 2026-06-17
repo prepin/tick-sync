@@ -1,4 +1,4 @@
-package tickticktokens
+package oauthtokens
 
 import (
 	"database/sql"
@@ -6,12 +6,15 @@ import (
 	"time"
 )
 
-const providerTickTick = "ticktick"
+const (
+	ProviderGoogle   = "google"
+	ProviderTickTick = "ticktick"
+)
 
-// ErrTokenNotFound reports that TickTick has not been connected yet.
-var ErrTokenNotFound = errors.New("ticktick access token missing")
+// ErrTokenNotFound reports that the requested provider has not been connected yet.
+var ErrTokenNotFound = errors.New("oauth token missing")
 
-// Token is the persisted TickTick OAuth token.
+// Token is a persisted OAuth token.
 type Token struct {
 	AccessToken              string
 	TokenType                string
@@ -23,7 +26,7 @@ type Token struct {
 	RefreshReminderCreatedAt time.Time
 }
 
-// Repo stores TickTick OAuth tokens in SQLite.
+// Repo stores OAuth tokens in SQLite.
 type Repo struct {
 	db *sql.DB
 }
@@ -31,7 +34,7 @@ type Repo struct {
 // New creates a Repo that uses the provided database.
 func New(db *sql.DB) (*Repo, error) {
 	if db == nil {
-		return nil, errors.New("ticktick tokens repo: db is nil")
+		return nil, errors.New("oauth tokens repo: db is nil")
 	}
 
 	return &Repo{db: db}, nil

@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/prepin/tick-sync/internal/infra/sqlite/tickticktokens"
+	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
 // Handle creates a single medium-priority reminder task when the stored token expires within two weeks.
 func (u *UseCase) Handle(ctx context.Context) error {
-	token, err := u.tokens.Get(ctx)
-	if errors.Is(err, tickticktokens.ErrTokenNotFound) {
+	token, err := u.tokens.Get(ctx, oauthtokens.ProviderTickTick)
+	if errors.Is(err, oauthtokens.ErrTokenNotFound) {
 		return nil
 	}
 	if err != nil {
@@ -31,7 +31,7 @@ func (u *UseCase) Handle(ctx context.Context) error {
 		return fmt.Errorf("create ticktick token refresh reminder: %w", err)
 	}
 
-	if err := u.tokens.MarkRefreshReminderCreated(ctx, token.AccessToken, created.ID, u.now()); err != nil {
+	if err := u.tokens.MarkRefreshReminderCreated(ctx, oauthtokens.ProviderTickTick, token.AccessToken, created.ID, u.now()); err != nil {
 		return fmt.Errorf("record ticktick token refresh reminder: %w", err)
 	}
 
@@ -40,7 +40,7 @@ func (u *UseCase) Handle(ctx context.Context) error {
 
 const timeLayout = "2006-01-02 15:04:05 MST"
 
-func (u *UseCase) shouldCreateReminder(token tickticktokens.Token) bool {
+func (u *UseCase) shouldCreateReminder(token oauthtokens.Token) bool {
 	if token.ExpiresAt.IsZero() || token.RefreshReminderTaskID != "" {
 		return false
 	}

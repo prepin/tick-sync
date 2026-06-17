@@ -1,4 +1,4 @@
-package tickticktokens
+package oauthtokens
 
 import "testing"
 
@@ -8,7 +8,7 @@ func TestNewCreatesRepo(t *testing.T) {
 
 	_, err := New(openTestDB(t))
 	if err != nil {
-		t.Fatalf("new ticktick token repo: %v", err)
+		t.Fatalf("new oauth token repo: %v", err)
 	}
 }
 

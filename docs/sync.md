@@ -30,6 +30,7 @@ TZ=Europe/Warsaw
 
 TICKTICK_CLIENT_ID=your-ticktick-client-id
 TICKTICK_CLIENT_SECRET=your-ticktick-client-secret
+GOOGLE_REDIRECT_URL=http://localhost:8080/google/callback
 TICKTICK_REDIRECT_URL=http://localhost:8080/ticktick/callback
 TICKTICK_PROJECT_ID=
 ```
@@ -45,7 +46,7 @@ When `TICKTICK_PROJECT_ID` is empty, the client omits `projectId` and attempts t
 
 When `GOOGLE_TODAY_IMPORT_DELAY=true`, Google tasks due today are left in Google Tasks and imported only after they become overdue. This avoids importing tasks created from commands like "remind me in 15 minutes" as all-day TickTick tasks, because the Google Tasks API does not expose due times.
 
-The service starts even before TickTick is connected. Until you complete TickTick auth at `http://localhost:8080/`, sync attempts that need to create TickTick tasks report a missing TickTick token and the next poll retries.
+The service starts even before Google Tasks or TickTick are connected. Complete both auth flows at `http://localhost:8080/`. Until then, sync attempts report the missing provider token and the next poll retries.
 
 If the stored TickTick token expires in less than two weeks, the service creates one medium-priority TickTick task reminding you to refresh it. This reminder is created once per token and has no due date.
 

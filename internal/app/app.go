@@ -18,7 +18,7 @@ import (
 	ticktick "github.com/prepin/tick-sync/internal/infra/clients/ticktick"
 	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
 	sqlitemigrate "github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
-	"github.com/prepin/tick-sync/internal/infra/sqlite/tickticktokens"
+	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"github.com/prepin/tick-sync/internal/usecase/tickticktokenreminder"
 )
@@ -72,7 +72,7 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	}
 
 	if a.jobs != nil {
-		tokenRepo, err := tickticktokens.New(db)
+		tokenRepo, err := oauthtokens.New(db)
 		if err != nil {
 			if closeErr := db.Close(); closeErr != nil {
 				a.logger.WarnContext(ctx, "close db after ticktick token repo init failure", "error", closeErr)
@@ -91,20 +91,20 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		return nil, fmt.Errorf("create google tasks repo: %w", err)
 	}
 
-	google, err := googletasks.New(ctx, cfg)
+	tokenRepo, err := oauthtokens.New(db)
+	if err != nil {
+		if closeErr := db.Close(); closeErr != nil {
+			a.logger.WarnContext(ctx, "close db after oauth token repo init failure", "error", closeErr)
+		}
+		return nil, fmt.Errorf("create oauth token repo: %w", err)
+	}
+
+	google, err := googletasks.New(ctx, cfg, tokenRepo)
 	if err != nil {
 		if closeErr := db.Close(); closeErr != nil {
 			a.logger.WarnContext(ctx, "close db after google client init failure", "error", closeErr)
 		}
 		return nil, fmt.Errorf("create google tasks client: %w", err)
-	}
-
-	tokenRepo, err := tickticktokens.New(db)
-	if err != nil {
-		if closeErr := db.Close(); closeErr != nil {
-			a.logger.WarnContext(ctx, "close db after ticktick token repo init failure", "error", closeErr)
-		}
-		return nil, fmt.Errorf("create ticktick token repo: %w", err)
 	}
 
 	ticktick, err := ticktick.New(cfg, tokenRepo)

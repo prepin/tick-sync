@@ -15,10 +15,12 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	t.Setenv("GOOGLE_POST_SYNC_ACTION", "")
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("GOOGLE_TOKEN_TYPE", "")
 	t.Setenv("GOOGLE_TOKEN_EXPIRY", "")
 	t.Setenv("GOOGLE_TASKLIST_ID", "")
+	t.Setenv("GOOGLE_REDIRECT_URL", "")
+	t.Setenv("GOOGLE_AUTH_URL", "")
+	t.Setenv("GOOGLE_TOKEN_URL", "")
 	t.Setenv("POLL_INTERVAL", "")
 	t.Setenv("TICKTICK_REMINDER_INTERVAL", "")
 	t.Setenv("GOOGLE_TODAY_IMPORT_DELAY", "")
@@ -60,6 +62,15 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	if cfg.GoogleTaskListID != "@default" {
 		t.Fatalf("unexpected google task list id: %s", cfg.GoogleTaskListID)
 	}
+	if cfg.GoogleRedirectURL != "http://localhost:8080/google/callback" {
+		t.Fatalf("unexpected google redirect url: %s", cfg.GoogleRedirectURL)
+	}
+	if cfg.GoogleAuthURL != "https://accounts.google.com/o/oauth2/v2/auth" {
+		t.Fatalf("unexpected google auth url: %s", cfg.GoogleAuthURL)
+	}
+	if cfg.GoogleTokenURL != "https://oauth2.googleapis.com/token" {
+		t.Fatalf("unexpected google token url: %s", cfg.GoogleTokenURL)
+	}
 	if cfg.TickTickAPIBaseURL != "https://api.ticktick.com/open/v1" {
 		t.Fatalf("unexpected ticktick api base url: %s", cfg.TickTickAPIBaseURL)
 	}
@@ -74,7 +85,7 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	}
 }
 
-// Fails validation when any of the required Google OAuth environment variables are missing.
+// Fails validation when any of the required Google OAuth client environment variables are missing.
 func TestValidateRequiresGoogleOAuthValues(t *testing.T) {
 	t.Parallel()
 	cfg := Config{}
@@ -88,7 +99,6 @@ func TestValidateRequiresGoogleOAuthValues(t *testing.T) {
 	for _, name := range []string{
 		"GOOGLE_CLIENT_ID",
 		"GOOGLE_CLIENT_SECRET",
-		"GOOGLE_REFRESH_TOKEN",
 	} {
 		if !strings.Contains(message, name) {
 			t.Fatalf("expected error to mention %s, got %q", name, message)
@@ -96,13 +106,12 @@ func TestValidateRequiresGoogleOAuthValues(t *testing.T) {
 	}
 }
 
-// Passes validation when only Google OAuth credentials (no access token) are provided.
-func TestValidateAllowsRefreshTokenOnly(t *testing.T) {
+// Passes validation when only Google OAuth client credentials are provided.
+func TestValidateAllowsClientCredentialsOnly(t *testing.T) {
 	t.Parallel()
 	cfg := Config{
 		GoogleClientID:     "client-id",
 		GoogleClientSecret: "client-secret",
-		GoogleRefreshToken: "refresh-token",
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -114,7 +123,6 @@ func TestValidateAllowsRefreshTokenOnly(t *testing.T) {
 func TestLoadDefaultsTokenExpiryToExpiredTime(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("GOOGLE_TOKEN_EXPIRY", "")
 
 	cfg, err := Load()
@@ -131,7 +139,6 @@ func TestLoadDefaultsTokenExpiryToExpiredTime(t *testing.T) {
 func TestLoadParsesTokenExpiryRFC3339(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("GOOGLE_TOKEN_EXPIRY", "2026-06-10T12:00:00Z")
 
 	cfg, err := Load()
@@ -148,7 +155,6 @@ func TestLoadParsesTokenExpiryRFC3339(t *testing.T) {
 func TestLoadRejectsInvalidTokenExpiry(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("GOOGLE_TOKEN_EXPIRY", "not-a-date")
 
 	_, err := Load()
@@ -164,7 +170,6 @@ func TestLoadRejectsInvalidTokenExpiry(t *testing.T) {
 func TestLoadParsesPollIntervalDuration(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("POLL_INTERVAL", "30s")
 
 	cfg, err := Load()
@@ -180,7 +185,6 @@ func TestLoadParsesPollIntervalDuration(t *testing.T) {
 func TestLoadParsesTickTickReminderIntervalDuration(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("TICKTICK_REMINDER_INTERVAL", "12h")
 
 	cfg, err := Load()
@@ -196,7 +200,6 @@ func TestLoadParsesTickTickReminderIntervalDuration(t *testing.T) {
 func TestLoadParsesTZLocation(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("TZ", "Europe/Warsaw")
 
 	cfg, err := Load()
@@ -215,7 +218,6 @@ func TestLoadParsesTZLocation(t *testing.T) {
 func TestLoadRejectsInvalidTZ(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("TZ", "Mars/Base")
 
 	_, err := Load()
@@ -231,7 +233,6 @@ func TestLoadRejectsInvalidTZ(t *testing.T) {
 func TestLoadParsesTodayImportDelayToggle(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("GOOGLE_TODAY_IMPORT_DELAY", "true")
 
 	cfg, err := Load()
@@ -247,7 +248,6 @@ func TestLoadParsesTodayImportDelayToggle(t *testing.T) {
 func TestLoadRejectsInvalidPollInterval(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("POLL_INTERVAL", "soon")
 
 	_, err := Load()
@@ -265,7 +265,6 @@ func TestLoadRejectsNonPositivePollInterval(t *testing.T) {
 		t.Run(value, func(t *testing.T) {
 			t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 			t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-			t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 			t.Setenv("POLL_INTERVAL", value)
 
 			_, err := Load()
@@ -285,7 +284,6 @@ func TestLoadRejectsNonPositiveTickTickReminderInterval(t *testing.T) {
 		t.Run(value, func(t *testing.T) {
 			t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 			t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-			t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 			t.Setenv("TICKTICK_REMINDER_INTERVAL", value)
 
 			_, err := Load()
@@ -303,7 +301,6 @@ func TestLoadRejectsNonPositiveTickTickReminderInterval(t *testing.T) {
 func TestLoadRejectsInvalidPostSyncAction(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
-	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
 	t.Setenv("GOOGLE_POST_SYNC_ACTION", "archive")
 
 	_, err := Load()

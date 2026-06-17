@@ -11,8 +11,19 @@ import (
 	"google.golang.org/api/option"
 	tasksapi "google.golang.org/api/tasks/v1"
 
+	"github.com/prepin/tick-sync/internal/config"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
+
+// Does not create an authenticated Google Tasks client when token storage is unavailable.
+func TestNewRejectsMissingTokenStore(t *testing.T) {
+	t.Parallel()
+
+	_, err := New(t.Context(), config.Config{GoogleClientID: "client-id", GoogleClientSecret: "client-secret"}, nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
 
 // Maps the Google Tasks API response into domain tasks with all expected fields.
 func TestListUncompletedMapsGoogleTasksFromAPI(t *testing.T) {
