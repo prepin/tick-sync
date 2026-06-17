@@ -12,6 +12,7 @@ import (
 
 	"github.com/prepin/tick-sync/internal/config"
 	googletasksyncjob "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
+	tickticktokenreminderjob "github.com/prepin/tick-sync/internal/entrypoints/cron/tickticktokenreminder"
 	"github.com/prepin/tick-sync/internal/entrypoints/httpserver"
 	googletasks "github.com/prepin/tick-sync/internal/infra/clients/googletasks"
 	ticktick "github.com/prepin/tick-sync/internal/infra/clients/ticktick"
@@ -19,6 +20,7 @@ import (
 	sqlitemigrate "github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
 	"github.com/prepin/tick-sync/internal/infra/sqlite/tickticktokens"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
+	"github.com/prepin/tick-sync/internal/usecase/tickticktokenreminder"
 )
 
 // JobsRunner defines the interface for background jobs started by App.
@@ -121,7 +123,11 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		googletasksync.WithTodayImportDelay(cfg.GoogleTodayImportDelay),
 		googletasksync.WithLocation(cfg.Location),
 	)
-	a.jobs = []JobsRunner{googletasksyncjob.New(uc, cfg.PollInterval, googletasksyncjob.WithLogger(a.logger))}
+	reminderUC := tickticktokenreminder.New(tokenRepo, ticktick)
+	a.jobs = []JobsRunner{
+		googletasksyncjob.New(uc, cfg.PollInterval, googletasksyncjob.WithLogger(a.logger)),
+		tickticktokenreminderjob.New(reminderUC, cfg.TickTickReminderInterval, tickticktokenreminderjob.WithLogger(a.logger)),
+	}
 	a.web = httpserver.New(cfg, tokenRepo, httpserver.WithLogger(a.logger))
 
 	return a, nil

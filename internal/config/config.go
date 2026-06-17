@@ -14,13 +14,14 @@ import (
 
 // Config holds environment-driven configuration for the service.
 type Config struct {
-	DBPath                 string                        `env:"DB_PATH" envDefault:"./tick-sync.db"`
-	HTTPAddr               string                        `env:"HTTP_ADDR" envDefault:":8080"`
-	GooglePostSyncAction   googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION" envDefault:"complete"`
-	GoogleTodayImportDelay bool                          `env:"GOOGLE_TODAY_IMPORT_DELAY" envDefault:"false"`
-	PollInterval           time.Duration                 `env:"POLL_INTERVAL" envDefault:"5m"`
-	TZ                     string                        `env:"TZ"`
-	Location               *time.Location                `env:"-"`
+	DBPath                   string                        `env:"DB_PATH" envDefault:"./tick-sync.db"`
+	HTTPAddr                 string                        `env:"HTTP_ADDR" envDefault:":8080"`
+	GooglePostSyncAction     googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION" envDefault:"complete"`
+	GoogleTodayImportDelay   bool                          `env:"GOOGLE_TODAY_IMPORT_DELAY" envDefault:"false"`
+	PollInterval             time.Duration                 `env:"POLL_INTERVAL" envDefault:"5m"`
+	TickTickReminderInterval time.Duration                 `env:"TICKTICK_REMINDER_INTERVAL" envDefault:"24h"`
+	TZ                       string                        `env:"TZ"`
+	Location                 *time.Location                `env:"-"`
 
 	GoogleClientID     string    `env:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string    `env:"GOOGLE_CLIENT_SECRET"`
@@ -62,6 +63,9 @@ func Load() (Config, error) {
 	}
 	if cfg.PollInterval <= 0 {
 		return Config{}, fmt.Errorf("POLL_INTERVAL must be greater than zero")
+	}
+	if cfg.TickTickReminderInterval <= 0 {
+		return Config{}, fmt.Errorf("TICKTICK_REMINDER_INTERVAL must be greater than zero")
 	}
 	if cfg.TZ == "" {
 		cfg.Location = time.Local

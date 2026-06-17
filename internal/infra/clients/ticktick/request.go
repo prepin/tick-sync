@@ -8,4 +8,5 @@ type createTaskRequest struct {
 	DueDate   string `json:"dueDate,omitempty"`
 	TimeZone  string `json:"timeZone,omitempty"`
 	IsAllDay  *bool  `json:"isAllDay,omitempty"`
+	Priority  int    `json:"priority,omitempty"`
 }

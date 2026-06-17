@@ -13,12 +13,14 @@ var ErrTokenNotFound = errors.New("ticktick access token missing")
 
 // Token is the persisted TickTick OAuth token.
 type Token struct {
-	AccessToken  string
-	TokenType    string
-	Scope        string
-	ExpiresAt    time.Time
-	RefreshToken string
-	UpdatedAt    time.Time
+	AccessToken              string
+	TokenType                string
+	Scope                    string
+	ExpiresAt                time.Time
+	RefreshToken             string
+	UpdatedAt                time.Time
+	RefreshReminderTaskID    string
+	RefreshReminderCreatedAt time.Time
 }
 
 // Repo stores TickTick OAuth tokens in SQLite.

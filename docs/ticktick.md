@@ -26,6 +26,7 @@ http://localhost:8080/ticktick/callback
 
 ```env
 HTTP_ADDR=:8080
+TICKTICK_REMINDER_INTERVAL=24h
 TICKTICK_CLIENT_ID=your-ticktick-client-id
 TICKTICK_CLIENT_SECRET=your-ticktick-client-secret
 TICKTICK_REDIRECT_URL=http://localhost:8080/ticktick/callback
@@ -36,6 +37,7 @@ TICKTICK_PROJECT_ID=
 Optional variables:
 
 - `HTTP_ADDR`, defaults to `:8080`
+- `TICKTICK_REMINDER_INTERVAL`, defaults to `24h`
 - `TICKTICK_REDIRECT_URL`, defaults to `http://localhost:8080/ticktick/callback`
 - `TICKTICK_API_BASE_URL`, defaults to `https://api.ticktick.com/open/v1`
 - `TICKTICK_PROJECT_ID`, defaults to empty
@@ -58,6 +60,8 @@ http://localhost:8080/
 Click `Connect TickTick`, approve access, and the callback page saves the token in the configured SQLite database.
 
 The sync job starts before TickTick is connected. If Google tasks need to be copied while no TickTick token exists, that sync tick logs a missing token error and the next poll retries.
+
+If the stored TickTick token expires in less than two weeks, the service creates one medium-priority TickTick task named `Refresh TickTick token`. The reminder is created once per access token and has no due date.
 
 ## Inbox Behavior
 

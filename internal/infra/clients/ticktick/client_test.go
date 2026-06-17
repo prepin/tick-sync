@@ -138,6 +138,28 @@ func TestCreateInboxTaskIncludesProjectIDWhenConfigured(t *testing.T) {
 	}
 }
 
+// Includes medium priority in the request body when the task input requests it.
+func TestCreateInboxTaskIncludesPriorityWhenConfigured(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		if body["priority"] != float64(3) {
+			t.Fatalf("expected medium priority, got %+v", body["priority"])
+		}
+		writeJSON(t, w, map[string]string{"id": "ticktick-1"})
+	}))
+	t.Cleanup(server.Close)
+
+	client := newTestClient(t, server.URL, "")
+	if _, err := client.CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{Title: "Refresh TickTick token", Priority: 3}); err != nil {
+		t.Fatalf("create reminder task: %v", err)
+	}
+}
+
 // Omits the dueDate and isAllDay fields when the task input has no due date.
 func TestCreateInboxTaskOmitsDueDateWhenMissing(t *testing.T) {
 	t.Parallel()

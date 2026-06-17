@@ -21,6 +21,7 @@ func toCreateTaskRequest(
 		ProjectID: projectID,
 		Content:   input.Details,
 		TimeZone:  timeZone,
+		Priority:  input.Priority,
 	}
 
 	if hasDueDate {

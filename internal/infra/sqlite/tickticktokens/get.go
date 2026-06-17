@@ -8,7 +8,7 @@ import (
 )
 
 const queryGetToken = `
-SELECT access_token, token_type, scope, expires_at, refresh_token, updated_at
+SELECT access_token, token_type, scope, expires_at, refresh_token, updated_at, refresh_reminder_task_id, refresh_reminder_created_at
 FROM ticktick_tokens
 WHERE provider = ?;`
 
@@ -17,6 +17,8 @@ func (r *Repo) Get(ctx context.Context) (Token, error) {
 	var token Token
 	var expiresAt string
 	var updatedAt string
+	var refreshReminderTaskID sql.NullString
+	var refreshReminderCreatedAt sql.NullString
 	err := r.db.QueryRowContext(ctx, queryGetToken, providerTickTick).Scan(
 		&token.AccessToken,
 		&token.TokenType,
@@ -24,6 +26,8 @@ func (r *Repo) Get(ctx context.Context) (Token, error) {
 		&expiresAt,
 		&token.RefreshToken,
 		&updatedAt,
+		&refreshReminderTaskID,
+		&refreshReminderCreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Token{}, ErrTokenNotFound
@@ -39,6 +43,11 @@ func (r *Repo) Get(ctx context.Context) (Token, error) {
 	token.UpdatedAt, err = parseOptionalTime(updatedAt)
 	if err != nil {
 		return Token{}, fmt.Errorf("parse ticktick token update time: %w", err)
+	}
+	token.RefreshReminderTaskID = refreshReminderTaskID.String
+	token.RefreshReminderCreatedAt, err = parseOptionalTime(refreshReminderCreatedAt.String)
+	if err != nil {
+		return Token{}, fmt.Errorf("parse ticktick refresh reminder creation time: %w", err)
 	}
 
 	return token, nil

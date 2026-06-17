@@ -23,6 +23,7 @@ The sync command:
 DB_PATH=./tick-sync.db
 HTTP_ADDR=:8080
 POLL_INTERVAL=5m
+TICKTICK_REMINDER_INTERVAL=24h
 GOOGLE_POST_SYNC_ACTION=complete
 GOOGLE_TODAY_IMPORT_DELAY=false
 TZ=Europe/Warsaw
@@ -45,6 +46,10 @@ When `TICKTICK_PROJECT_ID` is empty, the client omits `projectId` and attempts t
 When `GOOGLE_TODAY_IMPORT_DELAY=true`, Google tasks due today are left in Google Tasks and imported only after they become overdue. This avoids importing tasks created from commands like "remind me in 15 minutes" as all-day TickTick tasks, because the Google Tasks API does not expose due times.
 
 The service starts even before TickTick is connected. Until you complete TickTick auth at `http://localhost:8080/`, sync attempts that need to create TickTick tasks report a missing TickTick token and the next poll retries.
+
+If the stored TickTick token expires in less than two weeks, the service creates one medium-priority TickTick task reminding you to refresh it. This reminder is created once per token and has no due date.
+
+`TICKTICK_REMINDER_INTERVAL` controls how often the token reminder check runs. It defaults to `24h`.
 
 Stop it with Ctrl+C or SIGTERM.
 

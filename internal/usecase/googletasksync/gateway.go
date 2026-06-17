@@ -7,6 +7,7 @@ type CreateTickTickTaskInput struct {
 	Title              string
 	Details            string
 	Due                string
+	Priority           int
 	SourceGoogleTaskID string
 }
 

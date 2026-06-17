@@ -20,6 +20,7 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	t.Setenv("GOOGLE_TOKEN_EXPIRY", "")
 	t.Setenv("GOOGLE_TASKLIST_ID", "")
 	t.Setenv("POLL_INTERVAL", "")
+	t.Setenv("TICKTICK_REMINDER_INTERVAL", "")
 	t.Setenv("GOOGLE_TODAY_IMPORT_DELAY", "")
 	t.Setenv("TZ", "")
 	t.Setenv("TICKTICK_API_BASE_URL", "")
@@ -43,6 +44,9 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	}
 	if cfg.PollInterval != 5*time.Minute {
 		t.Fatalf("unexpected poll interval: %s", cfg.PollInterval)
+	}
+	if cfg.TickTickReminderInterval != 24*time.Hour {
+		t.Fatalf("unexpected ticktick reminder interval: %s", cfg.TickTickReminderInterval)
 	}
 	if cfg.GoogleTodayImportDelay {
 		t.Fatal("expected today import delay to be disabled by default")
@@ -172,6 +176,22 @@ func TestLoadParsesPollIntervalDuration(t *testing.T) {
 	}
 }
 
+// Loads a custom duration into the configured TickTick reminder interval.
+func TestLoadParsesTickTickReminderIntervalDuration(t *testing.T) {
+	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
+	t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
+	t.Setenv("TICKTICK_REMINDER_INTERVAL", "12h")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if cfg.TickTickReminderInterval != 12*time.Hour {
+		t.Fatalf("unexpected interval: %s", cfg.TickTickReminderInterval)
+	}
+}
+
 // Loads the conventional TZ environment variable as the application timezone.
 func TestLoadParsesTZLocation(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
@@ -253,6 +273,26 @@ func TestLoadRejectsNonPositivePollInterval(t *testing.T) {
 				t.Fatalf("expected error for %q", value)
 			}
 			if !strings.Contains(err.Error(), "POLL_INTERVAL") {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+// Reports an error when TICKTICK_REMINDER_INTERVAL is zero or negative.
+func TestLoadRejectsNonPositiveTickTickReminderInterval(t *testing.T) {
+	for _, value := range []string{"0s", "-1m"} {
+		t.Run(value, func(t *testing.T) {
+			t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+			t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
+			t.Setenv("GOOGLE_REFRESH_TOKEN", "refresh-token")
+			t.Setenv("TICKTICK_REMINDER_INTERVAL", value)
+
+			_, err := Load()
+			if err == nil {
+				t.Fatalf("expected error for %q", value)
+			}
+			if !strings.Contains(err.Error(), "TICKTICK_REMINDER_INTERVAL") {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})
