@@ -34,17 +34,19 @@ type Option func(*App)
 
 // App ties together configuration, storage, clients, and background jobs.
 type App struct {
-	cfg    config.Config
-	db     *sql.DB
-	jobs   []JobsRunner
-	web    JobsRunner
-	logger *slog.Logger
+	cfg          config.Config
+	db           *sql.DB
+	jobs         []JobsRunner
+	jobsOverride bool
+	web          JobsRunner
+	logger       *slog.Logger
 }
 
 // WithJobs overrides the default jobs created by New.
 func WithJobs(jobs []JobsRunner) Option {
 	return func(a *App) {
 		a.jobs = jobs
+		a.jobsOverride = true
 	}
 }
 
@@ -57,6 +59,27 @@ func WithLogger(logger *slog.Logger) Option {
 
 // New creates an App with the given configuration and options.
 func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
+	a, err := newBaseApp(ctx, cfg, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenRepo, err := a.configureWeb(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if a.jobsOverride {
+		return a, nil
+	}
+
+	if err := a.configureSync(ctx, tokenRepo); err != nil {
+		return nil, err
+	}
+
+	return a, nil
+}
+
+func newBaseApp(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	db, err := sql.Open("sqlite", cfg.DBPath)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite db: %w", err)
@@ -70,71 +93,67 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	for _, opt := range opts {
 		opt(a)
 	}
+	return a, nil
+}
 
-	if a.jobs != nil {
-		tokenRepo, err := oauthtokens.New(db)
-		if err != nil {
-			if closeErr := db.Close(); closeErr != nil {
-				a.logger.WarnContext(ctx, "close db after ticktick token repo init failure", "error", closeErr)
-			}
-			return nil, fmt.Errorf("create ticktick token repo: %w", err)
-		}
-		a.web = httpserver.New(cfg, tokenRepo, httpserver.WithLogger(a.logger))
-		return a, nil
+func (a *App) configureWeb(ctx context.Context) (*oauthtokens.Repo, error) {
+	tokenRepo, err := oauthtokens.New(a.db)
+	if err != nil {
+		return nil, a.closeDBAfterInitFailure(
+			ctx,
+			"close db after oauth token repo init failure",
+			err,
+			"create oauth token repo",
+		)
+	}
+	a.web = httpserver.New(a.cfg, tokenRepo, httpserver.WithLogger(a.logger))
+	return tokenRepo, nil
+}
+
+func (a *App) configureSync(ctx context.Context, tokenRepo *oauthtokens.Repo) error {
+	repo, err := googletasksrepo.New(a.db)
+	if err != nil {
+		return a.closeDBAfterInitFailure(ctx, "close db after repo init failure", err, "create google tasks repo")
 	}
 
-	repo, err := googletasksrepo.New(db)
+	google, err := googletasks.New(ctx, a.cfg, tokenRepo)
 	if err != nil {
-		if closeErr := db.Close(); closeErr != nil {
-			a.logger.WarnContext(ctx, "close db after repo init failure", "error", closeErr)
-		}
-		return nil, fmt.Errorf("create google tasks repo: %w", err)
+		return a.closeDBAfterInitFailure(
+			ctx,
+			"close db after google client init failure",
+			err,
+			"create google tasks client",
+		)
 	}
 
-	tokenRepo, err := oauthtokens.New(db)
+	ticktick, err := ticktick.New(a.cfg, tokenRepo)
 	if err != nil {
-		if closeErr := db.Close(); closeErr != nil {
-			a.logger.WarnContext(ctx, "close db after oauth token repo init failure", "error", closeErr)
-		}
-		return nil, fmt.Errorf("create oauth token repo: %w", err)
-	}
-
-	google, err := googletasks.New(ctx, cfg, tokenRepo)
-	if err != nil {
-		if closeErr := db.Close(); closeErr != nil {
-			a.logger.WarnContext(ctx, "close db after google client init failure", "error", closeErr)
-		}
-		return nil, fmt.Errorf("create google tasks client: %w", err)
-	}
-
-	ticktick, err := ticktick.New(cfg, tokenRepo)
-	if err != nil {
-		if closeErr := db.Close(); closeErr != nil {
-			a.logger.WarnContext(ctx, "close db after ticktick client init failure", "error", closeErr)
-		}
-		return nil, fmt.Errorf("create ticktick client: %w", err)
+		return a.closeDBAfterInitFailure(
+			ctx,
+			"close db after ticktick client init failure",
+			err,
+			"create ticktick client",
+		)
 	}
 
 	uc := googletasksync.New(
 		google,
 		ticktick,
 		repo,
-		cfg.GooglePostSyncAction,
-		googletasksync.WithTodayImportDelay(cfg.GoogleTodayImportDelay),
-		googletasksync.WithLocation(cfg.Location),
+		a.cfg.GooglePostSyncAction,
+		googletasksync.WithTodayImportDelay(a.cfg.GoogleTodayImportDelay),
+		googletasksync.WithLocation(a.cfg.Location),
 	)
 	reminderUC := tickticktokenreminder.New(tokenRepo, ticktick)
 	a.jobs = []JobsRunner{
-		googletasksyncjob.New(uc, cfg.PollInterval, googletasksyncjob.WithLogger(a.logger)),
+		googletasksyncjob.New(uc, a.cfg.PollInterval, googletasksyncjob.WithLogger(a.logger)),
 		tickticktokenreminderjob.New(
 			reminderUC,
-			cfg.TickTickReminderInterval,
+			a.cfg.TickTickReminderInterval,
 			tickticktokenreminderjob.WithLogger(a.logger),
 		),
 	}
-	a.web = httpserver.New(cfg, tokenRepo, httpserver.WithLogger(a.logger))
-
-	return a, nil
+	return nil
 }
 
 func closeAfterMigrationFailure(db *sql.DB, err error) error {
@@ -142,6 +161,13 @@ func closeAfterMigrationFailure(db *sql.DB, err error) error {
 		return fmt.Errorf("run sqlite migrations: %w", errors.Join(err, closeErr))
 	}
 	return fmt.Errorf("run sqlite migrations: %w", err)
+}
+
+func (a *App) closeDBAfterInitFailure(ctx context.Context, logMessage string, err error, wrapMessage string) error {
+	if closeErr := a.db.Close(); closeErr != nil {
+		a.logger.WarnContext(ctx, logMessage, "error", closeErr)
+	}
+	return fmt.Errorf("%s: %w", wrapMessage, err)
 }
 
 // Run starts all background jobs and blocks until the context is cancelled.
