@@ -2,6 +2,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -67,10 +68,10 @@ func Load() (Config, error) {
 		cfg.GoogleTokenExpiry = time.Now().Add(-time.Hour)
 	}
 	if cfg.PollInterval <= 0 {
-		return Config{}, fmt.Errorf("POLL_INTERVAL must be greater than zero")
+		return Config{}, errors.New("POLL_INTERVAL must be greater than zero")
 	}
 	if cfg.TickTickReminderInterval <= 0 {
-		return Config{}, fmt.Errorf("TICKTICK_REMINDER_INTERVAL must be greater than zero")
+		return Config{}, errors.New("TICKTICK_REMINDER_INTERVAL must be greater than zero")
 	}
 	if cfg.TZ == "" {
 		cfg.Location = time.Local

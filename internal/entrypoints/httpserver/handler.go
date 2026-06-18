@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -204,7 +205,7 @@ func (h *handler) validateState(r *http.Request, cookieName string) error {
 	state := r.URL.Query().Get("state")
 	cookie, err := r.Cookie(cookieName)
 	if err != nil || state == "" || subtle.ConstantTimeCompare([]byte(state), []byte(cookie.Value)) != 1 {
-		return fmt.Errorf("invalid oauth state")
+		return errors.New("invalid oauth state")
 	}
 	return nil
 }
@@ -249,7 +250,7 @@ func (h *handler) exchangeTickTickCode(ctx context.Context, code string) (oautht
 		return oauthtokens.Token{}, fmt.Errorf("decode ticktick token response: %w", err)
 	}
 	if body.AccessToken == "" {
-		return oauthtokens.Token{}, fmt.Errorf("decode ticktick token response: missing access_token")
+		return oauthtokens.Token{}, errors.New("decode ticktick token response: missing access_token")
 	}
 	if body.TokenType == "" {
 		body.TokenType = "bearer"
@@ -308,10 +309,10 @@ func (h *handler) exchangeGoogleCode(ctx context.Context, code string) (oauthtok
 		return oauthtokens.Token{}, fmt.Errorf("decode google token response: %w", err)
 	}
 	if body.AccessToken == "" {
-		return oauthtokens.Token{}, fmt.Errorf("decode google token response: missing access_token")
+		return oauthtokens.Token{}, errors.New("decode google token response: missing access_token")
 	}
 	if body.RefreshToken == "" {
-		return oauthtokens.Token{}, fmt.Errorf(
+		return oauthtokens.Token{}, errors.New(
 			"decode google token response: missing refresh_token; reconnect and approve consent",
 		)
 	}
