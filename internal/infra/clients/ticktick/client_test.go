@@ -10,11 +10,12 @@ import (
 	"strings"
 	"testing"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/prepin/tick-sync/internal/config"
 	"github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
 	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync"
-	_ "modernc.org/sqlite"
 )
 
 // Does not create a client when token storage is not provided.
@@ -155,7 +156,10 @@ func TestCreateInboxTaskIncludesPriorityWhenConfigured(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	client := newTestClient(t, server.URL, "")
-	if _, err := client.CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{Title: "Refresh TickTick token", Priority: 3}); err != nil {
+	if _, err := client.CreateInboxTask(
+		ctx,
+		googletasksync.CreateTickTickTaskInput{Title: "Refresh TickTick token", Priority: 3},
+	); err != nil {
 		t.Fatalf("create reminder task: %v", err)
 	}
 }
@@ -321,7 +325,11 @@ func newTestTokenRepoWithToken(t *testing.T) *oauthtokens.Repo {
 	t.Helper()
 
 	repo := newTestTokenRepo(t)
-	if err := repo.Save(t.Context(), oauthtokens.ProviderTickTick, oauthtokens.Token{AccessToken: "ticktick-token", TokenType: "bearer"}); err != nil {
+	if err := repo.Save(
+		t.Context(),
+		oauthtokens.ProviderTickTick,
+		oauthtokens.Token{AccessToken: "ticktick-token", TokenType: "bearer"},
+	); err != nil {
 		t.Fatalf("save ticktick token: %v", err)
 	}
 	return repo

@@ -23,15 +23,24 @@ func (u *UseCase) Handle(ctx context.Context) error {
 	}
 
 	created, err := u.ticktick.CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
-		Title:    "Refresh TickTick token",
-		Details:  fmt.Sprintf("TickTick token expires at %s. Reconnect TickTick at http://localhost:8080/.", token.ExpiresAt.Format(timeLayout)),
+		Title: "Refresh TickTick token",
+		Details: fmt.Sprintf(
+			"TickTick token expires at %s. Reconnect TickTick at http://localhost:8080/.",
+			token.ExpiresAt.Format(timeLayout),
+		),
 		Priority: mediumPriority,
 	})
 	if err != nil {
 		return fmt.Errorf("create ticktick token refresh reminder: %w", err)
 	}
 
-	if err := u.tokens.MarkRefreshReminderCreated(ctx, oauthtokens.ProviderTickTick, token.AccessToken, created.ID, u.now()); err != nil {
+	if err := u.tokens.MarkRefreshReminderCreated(
+		ctx,
+		oauthtokens.ProviderTickTick,
+		token.AccessToken,
+		created.ID,
+		u.now(),
+	); err != nil {
 		return fmt.Errorf("record ticktick token refresh reminder: %w", err)
 	}
 

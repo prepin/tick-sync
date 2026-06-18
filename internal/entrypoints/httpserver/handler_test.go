@@ -10,10 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/prepin/tick-sync/internal/config"
 	"github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
 	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
-	_ "modernc.org/sqlite"
 )
 
 // Shows the start page with Google and TickTick connect links before tokens are stored.
@@ -105,7 +106,16 @@ func TestGoogleCallbackStoresExchangedToken(t *testing.T) {
 		if r.Form.Get("code") != "auth-code" {
 			t.Fatalf("unexpected code: %s", r.Form.Get("code"))
 		}
-		writeJSON(t, w, map[string]any{"access_token": "access-1", "refresh_token": "refresh-1", "token_type": "Bearer", "expires_in": 3600})
+		writeJSON(
+			t,
+			w,
+			map[string]any{
+				"access_token":  "access-1",
+				"refresh_token": "refresh-1",
+				"token_type":    "Bearer",
+				"expires_in":    3600,
+			},
+		)
 	}))
 	t.Cleanup(tokenServer.Close)
 	h := newHandler(config.Config{

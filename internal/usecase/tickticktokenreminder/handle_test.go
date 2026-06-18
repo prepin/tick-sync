@@ -22,7 +22,9 @@ func TestHandleIgnoresMissingToken(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	tokens := mocks.NewMockTokenRepository(ctrl)
 	ticktick := mocks.NewMockTickTickGateway(ctrl)
-	tokens.EXPECT().Get(gomock.Any(), oauthtokens.ProviderTickTick).Return(oauthtokens.Token{}, oauthtokens.ErrTokenNotFound)
+	tokens.EXPECT().
+		Get(gomock.Any(), oauthtokens.ProviderTickTick).
+		Return(oauthtokens.Token{}, oauthtokens.ErrTokenNotFound)
 
 	uc := New(tokens, ticktick, WithNow(func() time.Time { return reminderNow }))
 	if err := uc.Handle(t.Context()); err != nil {
@@ -103,7 +105,9 @@ func TestHandleCreatesReminderForTokenExpiringWithinTwoWeeks(t *testing.T) {
 			return googletasksync.TickTickTaskView{ID: "task-1"}, nil
 		},
 	)
-	tokens.EXPECT().MarkRefreshReminderCreated(gomock.Any(), oauthtokens.ProviderTickTick, "access-1", "task-1", reminderNow).Return(nil)
+	tokens.EXPECT().
+		MarkRefreshReminderCreated(gomock.Any(), oauthtokens.ProviderTickTick, "access-1", "task-1", reminderNow).
+		Return(nil)
 
 	uc := New(tokens, ticktick, WithNow(func() time.Time { return reminderNow }))
 	if err := uc.Handle(t.Context()); err != nil {
@@ -120,7 +124,9 @@ func TestHandleReportsReminderCreationFailure(t *testing.T) {
 	token := tokenFixture()
 	token.ExpiresAt = reminderNow.Add(24 * time.Hour)
 	tokens.EXPECT().Get(gomock.Any(), oauthtokens.ProviderTickTick).Return(token, nil)
-	ticktick.EXPECT().CreateInboxTask(gomock.Any(), gomock.Any()).Return(googletasksync.TickTickTaskView{}, errors.New("ticktick unavailable"))
+	ticktick.EXPECT().
+		CreateInboxTask(gomock.Any(), gomock.Any()).
+		Return(googletasksync.TickTickTaskView{}, errors.New("ticktick unavailable"))
 
 	uc := New(tokens, ticktick, WithNow(func() time.Time { return reminderNow }))
 	err := uc.Handle(t.Context())

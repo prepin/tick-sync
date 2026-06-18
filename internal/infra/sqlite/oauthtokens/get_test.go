@@ -24,7 +24,10 @@ func TestGetAllowsMissingReminderColumnsOnExistingToken(t *testing.T) {
 	if err := repo.Save(t.Context(), ProviderTickTick, tokenFixture()); err != nil {
 		t.Fatalf("save oauth token: %v", err)
 	}
-	if _, err := repo.db.ExecContext(t.Context(), `UPDATE oauth_tokens SET refresh_reminder_task_id = NULL, refresh_reminder_created_at = NULL`); err != nil {
+	if _, err := repo.db.ExecContext(
+		t.Context(),
+		`UPDATE oauth_tokens SET refresh_reminder_task_id = NULL, refresh_reminder_created_at = NULL`,
+	); err != nil {
 		t.Fatalf("clear reminder columns: %v", err)
 	}
 

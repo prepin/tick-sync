@@ -126,7 +126,11 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	reminderUC := tickticktokenreminder.New(tokenRepo, ticktick)
 	a.jobs = []JobsRunner{
 		googletasksyncjob.New(uc, cfg.PollInterval, googletasksyncjob.WithLogger(a.logger)),
-		tickticktokenreminderjob.New(reminderUC, cfg.TickTickReminderInterval, tickticktokenreminderjob.WithLogger(a.logger)),
+		tickticktokenreminderjob.New(
+			reminderUC,
+			cfg.TickTickReminderInterval,
+			tickticktokenreminderjob.WithLogger(a.logger),
+		),
 	}
 	a.web = httpserver.New(cfg, tokenRepo, httpserver.WithLogger(a.logger))
 

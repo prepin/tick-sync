@@ -69,11 +69,13 @@ func TestJobStartContinuesAfterInitialExecuteFailure(t *testing.T) {
 	done := make(chan struct{})
 	gomock.InOrder(
 		google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, errors.New("google unavailable")),
-		google.EXPECT().ListUncompleted(gomock.Any()).DoAndReturn(func(context.Context) ([]googletasksync.GoogleTaskView, error) {
-			cancel()
-			close(done)
-			return nil, nil
-		}),
+		google.EXPECT().
+			ListUncompleted(gomock.Any()).
+			DoAndReturn(func(context.Context) ([]googletasksync.GoogleTaskView, error) {
+				cancel()
+				close(done)
+				return nil, nil
+			}),
 	)
 	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 

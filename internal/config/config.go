@@ -14,31 +14,31 @@ import (
 
 // Config holds environment-driven configuration for the service.
 type Config struct {
-	DBPath                   string                        `env:"DB_PATH" envDefault:"./tick-sync.db"`
-	HTTPAddr                 string                        `env:"HTTP_ADDR" envDefault:":8080"`
-	GooglePostSyncAction     googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION" envDefault:"complete"`
-	GoogleTodayImportDelay   bool                          `env:"GOOGLE_TODAY_IMPORT_DELAY" envDefault:"false"`
-	PollInterval             time.Duration                 `env:"POLL_INTERVAL" envDefault:"5m"`
+	DBPath                   string                        `env:"DB_PATH"                    envDefault:"./tick-sync.db"`
+	HTTPAddr                 string                        `env:"HTTP_ADDR"                  envDefault:":8080"`
+	GooglePostSyncAction     googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION"    envDefault:"complete"`
+	GoogleTodayImportDelay   bool                          `env:"GOOGLE_TODAY_IMPORT_DELAY"  envDefault:"false"`
+	PollInterval             time.Duration                 `env:"POLL_INTERVAL"              envDefault:"5m"`
 	TickTickReminderInterval time.Duration                 `env:"TICKTICK_REMINDER_INTERVAL" envDefault:"24h"`
 	TZ                       string                        `env:"TZ"`
 	Location                 *time.Location                `env:"-"`
 
 	GoogleClientID     string    `env:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string    `env:"GOOGLE_CLIENT_SECRET"`
-	GoogleTokenType    string    `env:"GOOGLE_TOKEN_TYPE" envDefault:"Bearer"`
+	GoogleTokenType    string    `env:"GOOGLE_TOKEN_TYPE"    envDefault:"Bearer"`
 	GoogleTokenExpiry  time.Time `env:"GOOGLE_TOKEN_EXPIRY"`
 	GoogleAPIEndpoint  string    `env:"GOOGLE_API_ENDPOINT"`
-	GoogleTaskListID   string    `env:"GOOGLE_TASKLIST_ID" envDefault:"@default"`
-	GoogleRedirectURL  string    `env:"GOOGLE_REDIRECT_URL" envDefault:"http://localhost:8080/google/callback"`
-	GoogleAuthURL      string    `env:"GOOGLE_AUTH_URL" envDefault:"https://accounts.google.com/o/oauth2/v2/auth"`
-	GoogleTokenURL     string    `env:"GOOGLE_TOKEN_URL" envDefault:"https://oauth2.googleapis.com/token"`
+	GoogleTaskListID   string    `env:"GOOGLE_TASKLIST_ID"   envDefault:"@default"`
+	GoogleRedirectURL  string    `env:"GOOGLE_REDIRECT_URL"  envDefault:"http://localhost:8080/google/callback"`
+	GoogleAuthURL      string    `env:"GOOGLE_AUTH_URL"      envDefault:"https://accounts.google.com/o/oauth2/v2/auth"`
+	GoogleTokenURL     string    `env:"GOOGLE_TOKEN_URL"     envDefault:"https://oauth2.googleapis.com/token"`
 
 	TickTickClientID     string `env:"TICKTICK_CLIENT_ID"`
 	TickTickClientSecret string `env:"TICKTICK_CLIENT_SECRET"`
-	TickTickRedirectURL  string `env:"TICKTICK_REDIRECT_URL" envDefault:"http://localhost:8080/ticktick/callback"`
-	TickTickAuthURL      string `env:"TICKTICK_AUTH_URL" envDefault:"https://ticktick.com/oauth/authorize"`
-	TickTickTokenURL     string `env:"TICKTICK_TOKEN_URL" envDefault:"https://ticktick.com/oauth/token"`
-	TickTickAPIBaseURL   string `env:"TICKTICK_API_BASE_URL" envDefault:"https://api.ticktick.com/open/v1"`
+	TickTickRedirectURL  string `env:"TICKTICK_REDIRECT_URL"  envDefault:"http://localhost:8080/ticktick/callback"`
+	TickTickAuthURL      string `env:"TICKTICK_AUTH_URL"      envDefault:"https://ticktick.com/oauth/authorize"`
+	TickTickTokenURL     string `env:"TICKTICK_TOKEN_URL"     envDefault:"https://ticktick.com/oauth/token"`
+	TickTickAPIBaseURL   string `env:"TICKTICK_API_BASE_URL"  envDefault:"https://api.ticktick.com/open/v1"`
 	TickTickProjectID    string `env:"TICKTICK_PROJECT_ID"`
 }
 
@@ -57,7 +57,10 @@ func Load() (Config, error) {
 	case googletasksync.PostSyncActionDelete:
 		cfg.GooglePostSyncAction = googletasksync.PostSyncActionDelete
 	default:
-		return Config{}, fmt.Errorf("unsupported GOOGLE_POST_SYNC_ACTION %q; expected complete or delete", cfg.GooglePostSyncAction)
+		return Config{}, fmt.Errorf(
+			"unsupported GOOGLE_POST_SYNC_ACTION %q; expected complete or delete",
+			cfg.GooglePostSyncAction,
+		)
 	}
 
 	if cfg.GoogleTokenExpiry.IsZero() {

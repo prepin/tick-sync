@@ -6,8 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
 	_ "modernc.org/sqlite"
+
+	"github.com/prepin/tick-sync/internal/infra/sqlite/migrate"
 )
 
 // Creates a Repo with a fresh SQLite database for testing.

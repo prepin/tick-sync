@@ -34,7 +34,13 @@ func TestSavePreservesReminderForSameToken(t *testing.T) {
 	if err := repo.Save(t.Context(), ProviderTickTick, tokenFixture()); err != nil {
 		t.Fatalf("save initial oauth token: %v", err)
 	}
-	if err := repo.MarkRefreshReminderCreated(t.Context(), ProviderTickTick, "access-1", "task-1", tokenFixture().UpdatedAt); err != nil {
+	if err := repo.MarkRefreshReminderCreated(
+		t.Context(),
+		ProviderTickTick,
+		"access-1",
+		"task-1",
+		tokenFixture().UpdatedAt,
+	); err != nil {
 		t.Fatalf("mark refresh reminder created: %v", err)
 	}
 	if err := repo.Save(t.Context(), ProviderTickTick, tokenFixture()); err != nil {
@@ -58,7 +64,13 @@ func TestSaveClearsReminderForNewToken(t *testing.T) {
 	if err := repo.Save(t.Context(), ProviderTickTick, tokenFixture()); err != nil {
 		t.Fatalf("save initial oauth token: %v", err)
 	}
-	if err := repo.MarkRefreshReminderCreated(t.Context(), ProviderTickTick, "access-1", "task-1", tokenFixture().UpdatedAt); err != nil {
+	if err := repo.MarkRefreshReminderCreated(
+		t.Context(),
+		ProviderTickTick,
+		"access-1",
+		"task-1",
+		tokenFixture().UpdatedAt,
+	); err != nil {
 		t.Fatalf("mark refresh reminder created: %v", err)
 	}
 	updated := tokenFixture()

@@ -124,7 +124,11 @@ func (h *handler) googleCallback(w http.ResponseWriter, r *http.Request) {
 
 	http.SetCookie(w, &http.Cookie{Name: "google_oauth_state", Value: "", Path: "/google", MaxAge: -1, HttpOnly: true})
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte("<!doctype html><title>Google connected</title><p>Google Tasks connected. You can close this page.</p><p><a href=\"/\">Back</a></p>"))
+	_, _ = w.Write(
+		[]byte(
+			"<!doctype html><title>Google connected</title><p>Google Tasks connected. You can close this page.</p><p><a href=\"/\">Back</a></p>",
+		),
+	)
 }
 
 func (h *handler) tickTickAuth(w http.ResponseWriter, r *http.Request) {
@@ -178,9 +182,16 @@ func (h *handler) tickTickCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.SetCookie(w, &http.Cookie{Name: "ticktick_oauth_state", Value: "", Path: "/ticktick", MaxAge: -1, HttpOnly: true})
+	http.SetCookie(
+		w,
+		&http.Cookie{Name: "ticktick_oauth_state", Value: "", Path: "/ticktick", MaxAge: -1, HttpOnly: true},
+	)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write([]byte("<!doctype html><title>TickTick connected</title><p>TickTick connected. You can close this page.</p><p><a href=\"/\">Back</a></p>"))
+	_, _ = w.Write(
+		[]byte(
+			"<!doctype html><title>TickTick connected</title><p>TickTick connected. You can close this page.</p><p><a href=\"/\">Back</a></p>",
+		),
+	)
 }
 
 func (h *handler) validateState(r *http.Request, cookieName string) error {
@@ -199,7 +210,12 @@ func (h *handler) exchangeTickTickCode(ctx context.Context, code string) (oautht
 	values.Set("scope", tickTickScope)
 	values.Set("redirect_uri", h.cfg.TickTickRedirectURL)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.cfg.TickTickTokenURL, strings.NewReader(values.Encode()))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		h.cfg.TickTickTokenURL,
+		strings.NewReader(values.Encode()),
+	)
 	if err != nil {
 		return oauthtokens.Token{}, fmt.Errorf("create ticktick token request: %w", err)
 	}
@@ -254,7 +270,12 @@ func (h *handler) exchangeGoogleCode(ctx context.Context, code string) (oauthtok
 	values.Set("grant_type", "authorization_code")
 	values.Set("redirect_uri", h.cfg.GoogleRedirectURL)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.cfg.GoogleTokenURL, strings.NewReader(values.Encode()))
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		h.cfg.GoogleTokenURL,
+		strings.NewReader(values.Encode()),
+	)
 	if err != nil {
 		return oauthtokens.Token{}, fmt.Errorf("create google token request: %w", err)
 	}
@@ -284,7 +305,9 @@ func (h *handler) exchangeGoogleCode(ctx context.Context, code string) (oauthtok
 		return oauthtokens.Token{}, fmt.Errorf("decode google token response: missing access_token")
 	}
 	if body.RefreshToken == "" {
-		return oauthtokens.Token{}, fmt.Errorf("decode google token response: missing refresh_token; reconnect and approve consent")
+		return oauthtokens.Token{}, fmt.Errorf(
+			"decode google token response: missing refresh_token; reconnect and approve consent",
+		)
 	}
 	if body.TokenType == "" {
 		body.TokenType = "Bearer"

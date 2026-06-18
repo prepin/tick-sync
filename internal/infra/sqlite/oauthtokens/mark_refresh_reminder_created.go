@@ -12,7 +12,13 @@ SET refresh_reminder_task_id = ?, refresh_reminder_created_at = ?
 WHERE provider = ? AND access_token = ?;`
 
 // MarkRefreshReminderCreated records that a reminder task has already been created for the current provider token.
-func (r *Repo) MarkRefreshReminderCreated(ctx context.Context, provider string, accessToken string, taskID string, createdAt time.Time) error {
+func (r *Repo) MarkRefreshReminderCreated(
+	ctx context.Context,
+	provider string,
+	accessToken string,
+	taskID string,
+	createdAt time.Time,
+) error {
 	result, err := r.db.ExecContext(ctx, queryMarkRefreshReminderCreated,
 		taskID,
 		formatTime(createdAt),

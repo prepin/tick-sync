@@ -10,7 +10,13 @@ import (
 // TokenRepository stores TickTick token metadata and reminder idempotency markers.
 type TokenRepository interface {
 	Get(ctx context.Context, provider string) (oauthtokens.Token, error)
-	MarkRefreshReminderCreated(ctx context.Context, provider string, accessToken string, taskID string, createdAt time.Time) error
+	MarkRefreshReminderCreated(
+		ctx context.Context,
+		provider string,
+		accessToken string,
+		taskID string,
+		createdAt time.Time,
+	) error
 }
 
 //go:generate go tool mockgen -source=repository.go -destination=mocks/repository_mocks.go -package=mocks

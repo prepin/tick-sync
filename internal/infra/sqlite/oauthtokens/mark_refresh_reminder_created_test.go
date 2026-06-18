@@ -13,7 +13,13 @@ func TestMarkRefreshReminderCreatedStoresTaskID(t *testing.T) {
 	if err := repo.Save(t.Context(), ProviderTickTick, tokenFixture()); err != nil {
 		t.Fatalf("save oauth token: %v", err)
 	}
-	if err := repo.MarkRefreshReminderCreated(t.Context(), ProviderTickTick, "access-1", "task-1", tokenFixture().UpdatedAt); err != nil {
+	if err := repo.MarkRefreshReminderCreated(
+		t.Context(),
+		ProviderTickTick,
+		"access-1",
+		"task-1",
+		tokenFixture().UpdatedAt,
+	); err != nil {
 		t.Fatalf("mark refresh reminder created: %v", err)
 	}
 
@@ -37,7 +43,16 @@ func TestMarkRefreshReminderCreatedReportsStaleToken(t *testing.T) {
 	if err := repo.Save(t.Context(), ProviderTickTick, tokenFixture()); err != nil {
 		t.Fatalf("save oauth token: %v", err)
 	}
-	if err := repo.MarkRefreshReminderCreated(t.Context(), ProviderTickTick, "old-token", "task-1", tokenFixture().UpdatedAt); !errors.Is(err, ErrTokenNotFound) {
+	if err := repo.MarkRefreshReminderCreated(
+		t.Context(),
+		ProviderTickTick,
+		"old-token",
+		"task-1",
+		tokenFixture().UpdatedAt,
+	); !errors.Is(
+		err,
+		ErrTokenNotFound,
+	) {
 		t.Fatalf("expected missing token error, got %v", err)
 	}
 }
