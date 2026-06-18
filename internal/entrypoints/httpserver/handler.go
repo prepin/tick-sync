@@ -89,11 +89,13 @@ func (h *handler) googleAuth(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "create oauth state", http.StatusInternalServerError)
 		return
 	}
+	//nolint:gosec // Local OAuth callbacks use HTTP; Secure is enabled automatically for TLS requests.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "google_oauth_state",
 		Value:    state,
 		Path:     "/google",
 		MaxAge:   600,
+		Secure:   r.TLS != nil,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
@@ -131,11 +133,13 @@ func (h *handler) tickTickAuth(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "create oauth state", http.StatusInternalServerError)
 		return
 	}
+	//nolint:gosec // Local OAuth callbacks use HTTP; Secure is enabled automatically for TLS requests.
 	http.SetCookie(w, &http.Cookie{
 		Name:     "ticktick_oauth_state",
 		Value:    state,
 		Path:     "/ticktick",
 		MaxAge:   600,
+		Secure:   r.TLS != nil,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})
@@ -182,11 +186,13 @@ func (h *handler) oauthCallback(w http.ResponseWriter, r *http.Request, cfg oaut
 		return
 	}
 
+	//nolint:gosec // Local OAuth callbacks use HTTP; Secure is enabled automatically for TLS requests.
 	http.SetCookie(w, &http.Cookie{
 		Name:     cfg.cookieName,
 		Value:    "",
 		Path:     cfg.cookiePath,
 		MaxAge:   -1,
+		Secure:   r.TLS != nil,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 	})

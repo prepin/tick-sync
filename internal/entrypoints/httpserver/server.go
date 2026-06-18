@@ -54,7 +54,7 @@ func (s *Server) Start(ctx context.Context) {
 func (s *Server) run(ctx context.Context) {
 	go func() {
 		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 		defer cancel()
 		if err := s.server.Shutdown(shutdownCtx); err != nil {
 			s.logger.WarnContext(ctx, "http server shutdown failed", "error", err)

@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+//nolint:gosec // SQL column names contain token fields; no credential values are hardcoded.
 const queryUpsertToken = `
 INSERT INTO oauth_tokens (
   provider,

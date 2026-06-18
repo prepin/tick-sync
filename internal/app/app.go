@@ -4,6 +4,7 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -62,8 +63,7 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	}
 
 	if err := sqlitemigrate.Up(ctx, db); err != nil {
-		db.Close()
-		return nil, fmt.Errorf("run sqlite migrations: %w", err)
+		return nil, closeAfterMigrationFailure(db, err)
 	}
 
 	a := &App{cfg: cfg, db: db, logger: slog.New(slog.DiscardHandler)}
@@ -135,6 +135,13 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 	a.web = httpserver.New(cfg, tokenRepo, httpserver.WithLogger(a.logger))
 
 	return a, nil
+}
+
+func closeAfterMigrationFailure(db *sql.DB, err error) error {
+	if closeErr := db.Close(); closeErr != nil {
+		return fmt.Errorf("run sqlite migrations: %w", errors.Join(err, closeErr))
+	}
+	return fmt.Errorf("run sqlite migrations: %w", err)
 }
 
 // Run starts all background jobs and blocks until the context is cancelled.
