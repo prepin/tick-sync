@@ -44,6 +44,15 @@ type handler struct {
 	httpClient *http.Client
 }
 
+type oauthCallbackConfig struct {
+	cookieName  string
+	cookiePath  string
+	provider    string
+	saveError   string
+	successHTML string
+	exchange    func(context.Context, string) (oauthtokens.Token, error)
+}
+
 func newHandler(cfg config.Config, tokens TokenStore) *handler {
 	return &handler{cfg: cfg, tokens: tokens, httpClient: http.DefaultClient}
 }
@@ -101,34 +110,14 @@ func (h *handler) googleAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) googleCallback(w http.ResponseWriter, r *http.Request) {
-	if err := h.validateState(r, "google_oauth_state"); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	code := r.URL.Query().Get("code")
-	if code == "" {
-		http.Error(w, "missing authorization code", http.StatusBadRequest)
-		return
-	}
-
-	token, err := h.exchangeGoogleCode(r.Context(), code)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
-	}
-	if err := h.tokens.Save(r.Context(), oauthtokens.ProviderGoogle, token); err != nil {
-		http.Error(w, "save google token", http.StatusInternalServerError)
-		return
-	}
-
-	http.SetCookie(w, &http.Cookie{Name: "google_oauth_state", Value: "", Path: "/google", MaxAge: -1, HttpOnly: true})
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(
-		[]byte(
-			"<!doctype html><title>Google connected</title><p>Google Tasks connected. You can close this page.</p><p><a href=\"/\">Back</a></p>",
-		),
-	)
+	h.oauthCallback(w, r, oauthCallbackConfig{
+		cookieName:  "google_oauth_state",
+		cookiePath:  "/google",
+		provider:    oauthtokens.ProviderGoogle,
+		saveError:   "save google token",
+		successHTML: `<!doctype html><title>Google connected</title><p>Google Tasks connected. You can close this page.</p><p><a href="/">Back</a></p>`,
+		exchange:    h.exchangeGoogleCode,
+	})
 }
 
 func (h *handler) tickTickAuth(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +150,18 @@ func (h *handler) tickTickAuth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) tickTickCallback(w http.ResponseWriter, r *http.Request) {
-	if err := h.validateState(r, "ticktick_oauth_state"); err != nil {
+	h.oauthCallback(w, r, oauthCallbackConfig{
+		cookieName:  "ticktick_oauth_state",
+		cookiePath:  "/ticktick",
+		provider:    oauthtokens.ProviderTickTick,
+		saveError:   "save ticktick token",
+		successHTML: `<!doctype html><title>TickTick connected</title><p>TickTick connected. You can close this page.</p><p><a href="/">Back</a></p>`,
+		exchange:    h.exchangeTickTickCode,
+	})
+}
+
+func (h *handler) oauthCallback(w http.ResponseWriter, r *http.Request, cfg oauthCallbackConfig) {
+	if err := h.validateState(r, cfg.cookieName); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -172,26 +172,26 @@ func (h *handler) tickTickCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.exchangeTickTickCode(r.Context(), code)
+	token, err := cfg.exchange(r.Context(), code)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
-	if err := h.tokens.Save(r.Context(), oauthtokens.ProviderTickTick, token); err != nil {
-		http.Error(w, "save ticktick token", http.StatusInternalServerError)
+	if err := h.tokens.Save(r.Context(), cfg.provider, token); err != nil {
+		http.Error(w, cfg.saveError, http.StatusInternalServerError)
 		return
 	}
 
-	http.SetCookie(
-		w,
-		&http.Cookie{Name: "ticktick_oauth_state", Value: "", Path: "/ticktick", MaxAge: -1, HttpOnly: true},
-	)
+	http.SetCookie(w, &http.Cookie{
+		Name:     cfg.cookieName,
+		Value:    "",
+		Path:     cfg.cookiePath,
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = w.Write(
-		[]byte(
-			"<!doctype html><title>TickTick connected</title><p>TickTick connected. You can close this page.</p><p><a href=\"/\">Back</a></p>",
-		),
-	)
+	_, _ = w.Write([]byte(cfg.successHTML))
 }
 
 func (h *handler) validateState(r *http.Request, cookieName string) error {
