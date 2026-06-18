@@ -1,0 +1,14 @@
+FROM alpine:3.22
+
+ARG TARGETPLATFORM
+
+RUN apk add --no-cache ca-certificates tzdata \
+  && addgroup -S tick-sync \
+  && adduser -S -G tick-sync tick-sync
+
+COPY ${TARGETPLATFORM}/tick-sync /usr/bin/tick-sync
+
+USER tick-sync
+EXPOSE 8080
+
+ENTRYPOINT ["/usr/bin/tick-sync"]

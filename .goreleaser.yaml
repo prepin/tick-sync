@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: tick-sync
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: tick-sync
+    main: ./cmd/app
+    binary: tick-sync
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats:
+      - tar.gz
+
+dockers_v2:
+  - id: tick-sync
+    dockerfile: Dockerfile.goreleaser
+    ids:
+      - tick-sync
+    images:
+      - ghcr.io/prepin/tick-sync
+    tags:
+      - '{{ .Tag }}'
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
