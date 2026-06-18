@@ -66,7 +66,7 @@ func TestAppRunStopsOnContextCancel(t *testing.T) {
 	}
 	defer db.Close()
 
-	repo, err := googletasksrepo.New(t.Context(), db)
+	repo, err := googletasksrepo.New(db)
 	if err != nil {
 		t.Fatalf("new repo: %v", err)
 	}

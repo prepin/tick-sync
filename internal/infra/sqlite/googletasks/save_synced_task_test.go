@@ -9,7 +9,7 @@ import (
 func TestSaveSyncedTaskRecordsTask(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	repo := newTestRepo(t, ctx)
+	repo := newTestRepo(t)
 
 	if err := repo.SaveSyncedTask(ctx, syncedTaskParams()); err != nil {
 		t.Fatalf("save synced task: %v", err)
@@ -29,7 +29,7 @@ func TestSaveSyncedTaskStoresRecordFields(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	db := openTestDB(t)
-	repo, err := New(ctx, db)
+	repo, err := New(db)
 	if err != nil {
 		t.Fatalf("new google tasks repo: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestSaveSyncedTaskIsIdempotent(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
 	db := openTestDB(t)
-	repo, err := New(ctx, db)
+	repo, err := New(db)
 	if err != nil {
 		t.Fatalf("new google tasks repo: %v", err)
 	}
@@ -101,7 +101,7 @@ func TestSaveSyncedTaskIsIdempotent(t *testing.T) {
 func TestSaveSyncedTaskReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	repo := newTestRepo(t, ctx)
+	repo := newTestRepo(t)
 	if err := repo.db.Close(); err != nil {
 		t.Fatalf("close db: %v", err)
 	}

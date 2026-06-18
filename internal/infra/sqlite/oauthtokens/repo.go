@@ -1,3 +1,4 @@
+// Package oauthtokens stores OAuth tokens in SQLite.
 package oauthtokens
 
 import (
@@ -7,7 +8,10 @@ import (
 )
 
 const (
-	ProviderGoogle   = "google"
+	// ProviderGoogle identifies stored Google OAuth tokens.
+	ProviderGoogle = "google"
+
+	// ProviderTickTick identifies stored TickTick OAuth tokens.
 	ProviderTickTick = "ticktick"
 )
 

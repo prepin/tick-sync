@@ -8,7 +8,7 @@ import (
 func TestIsProcessedReturnsFalseForUnknownTask(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	repo := newTestRepo(t, ctx)
+	repo := newTestRepo(t)
 
 	processed, err := repo.IsProcessed(ctx, "google-1")
 	if err != nil {
@@ -23,7 +23,7 @@ func TestIsProcessedReturnsFalseForUnknownTask(t *testing.T) {
 func TestIsProcessedReturnsErrorWhenDatabaseIsClosed(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
-	repo := newTestRepo(t, ctx)
+	repo := newTestRepo(t)
 	if err := repo.db.Close(); err != nil {
 		t.Fatalf("close db: %v", err)
 	}

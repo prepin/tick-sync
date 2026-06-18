@@ -83,7 +83,7 @@ func New(ctx context.Context, cfg config.Config, opts ...Option) (*App, error) {
 		return a, nil
 	}
 
-	repo, err := googletasksrepo.New(ctx, db)
+	repo, err := googletasksrepo.New(db)
 	if err != nil {
 		if closeErr := db.Close(); closeErr != nil {
 			a.logger.WarnContext(ctx, "close db after repo init failure", "error", closeErr)

@@ -1,7 +1,6 @@
 package googletasks
 
 import (
-	"context"
 	"database/sql"
 	"errors"
 	"time"
@@ -13,7 +12,7 @@ type Repo struct {
 }
 
 // New creates a Repo that uses the provided database.
-func New(ctx context.Context, db *sql.DB) (*Repo, error) {
+func New(db *sql.DB) (*Repo, error) {
 	if db == nil {
 		return nil, errors.New("google tasks repo: db is nil")
 	}

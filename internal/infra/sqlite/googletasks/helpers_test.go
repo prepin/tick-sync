@@ -1,7 +1,6 @@
 package googletasks
 
 import (
-	"context"
 	"database/sql"
 	"path/filepath"
 	"testing"
@@ -14,10 +13,10 @@ import (
 )
 
 // Creates a Repo with a fresh in-memory SQLite database for testing.
-func newTestRepo(t *testing.T, ctx context.Context) *Repo {
+func newTestRepo(t *testing.T) *Repo {
 	t.Helper()
 
-	repo, err := New(ctx, openTestDB(t))
+	repo, err := New(openTestDB(t))
 	if err != nil {
 		t.Fatalf("new google tasks repo: %v", err)
 	}

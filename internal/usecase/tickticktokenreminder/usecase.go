@@ -1,3 +1,4 @@
+// Package tickticktokenreminder creates TickTick reminders for token refresh.
 package tickticktokenreminder
 
 import "time"
