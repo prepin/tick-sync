@@ -46,12 +46,8 @@ func (j *Job) Name() string {
 	return "google-tasks-sync"
 }
 
-// Start begins the polling loop.
-func (j *Job) Start(ctx context.Context) {
-	go j.run(ctx)
-}
-
-func (j *Job) run(ctx context.Context) {
+// Run starts the polling loop until the context is cancelled.
+func (j *Job) Run(ctx context.Context) error {
 	j.logger.InfoContext(ctx, "job started", "job", j.Name())
 
 	if err := j.Execute(ctx); err != nil {
@@ -65,7 +61,7 @@ func (j *Job) run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			j.logger.InfoContext(ctx, "job shutting down", "job", j.Name())
-			return
+			return nil
 		case <-ticker.C:
 			if err := j.Execute(ctx); err != nil {
 				j.logger.ErrorContext(ctx, "job sync failed", "job", j.Name(), "error", err)

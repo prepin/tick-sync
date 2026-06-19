@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -79,11 +80,11 @@ func TestAppRunStopsOnContextCancel(t *testing.T) {
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := googletasksyncjob.New(uc, time.Minute)
 
-	cfg := config.Config{DBPath: dbPath, PollInterval: time.Minute}
+	cfg := config.Config{DBPath: dbPath, HTTPAddr: "127.0.0.1:0", PollInterval: time.Minute}
 	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
 
-	application, err := New(ctx, cfg, WithJobs([]JobsRunner{job}))
+	application, err := New(ctx, cfg, WithJobs([]Runner{job}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
@@ -94,13 +95,57 @@ func TestAppRunStopsOnContextCancel(t *testing.T) {
 	}
 }
 
+// Returns an error and cancels sibling runners when one supervised runner fails.
+func TestAppRunReturnsRunnerFailureAndCancelsSiblings(t *testing.T) {
+	t.Parallel()
+	runnerErr := errors.New("runner failed")
+	siblingCancelled := make(chan struct{})
+	application := newTestAppWithRunners(t, []Runner{
+		testRunner{run: func(context.Context) error { return runnerErr }},
+		testRunner{run: func(ctx context.Context) error {
+			<-ctx.Done()
+			close(siblingCancelled)
+			return nil
+		}},
+	})
+
+	err := application.Run(t.Context())
+	if err == nil {
+		t.Fatal("expected runner error")
+	}
+	if !errors.Is(err, runnerErr) {
+		t.Fatalf("expected runner failure, got %v", err)
+	}
+	select {
+	case <-siblingCancelled:
+	case <-time.After(time.Second):
+		t.Fatal("expected sibling runner cancellation")
+	}
+}
+
+// Returns an error when a supervised runner stops before shutdown without reporting a failure.
+func TestAppRunReportsUnexpectedRunnerStop(t *testing.T) {
+	t.Parallel()
+	application := newTestAppWithRunners(t, []Runner{
+		testRunner{run: func(context.Context) error { return nil }},
+	})
+
+	err := application.Run(t.Context())
+	if err == nil {
+		t.Fatal("expected unexpected stop error")
+	}
+	if !strings.Contains(err.Error(), "stopped unexpectedly") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 // Closes the database handle and returns nil when the app has a valid DB connection.
 func TestAppClose(t *testing.T) {
 	t.Parallel()
 	dbPath := filepath.Join(t.TempDir(), "tick-sync.db")
 	cfg := config.Config{DBPath: dbPath}
 
-	application, err := New(t.Context(), cfg, WithJobs([]JobsRunner{}))
+	application, err := New(t.Context(), cfg, WithJobs([]Runner{}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}
@@ -108,4 +153,28 @@ func TestAppClose(t *testing.T) {
 	if err := application.Close(); err != nil {
 		t.Fatalf("close: %v", err)
 	}
+}
+
+// newTestAppWithRunners creates an app with only the provided supervised runners and no HTTP server.
+func newTestAppWithRunners(t *testing.T, runners []Runner) *App {
+	t.Helper()
+	application, err := New(
+		t.Context(),
+		config.Config{DBPath: filepath.Join(t.TempDir(), "tick-sync.db")},
+		WithJobs(runners),
+	)
+	if err != nil {
+		t.Fatalf("new app: %v", err)
+	}
+	application.web = nil
+	t.Cleanup(func() { application.Close() })
+	return application
+}
+
+type testRunner struct {
+	run func(context.Context) error
+}
+
+func (r testRunner) Run(ctx context.Context) error {
+	return r.run(ctx)
 }

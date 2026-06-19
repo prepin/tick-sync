@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	// Register the modernc.org/sqlite database driver.
 	_ "modernc.org/sqlite"
@@ -24,9 +25,9 @@ import (
 	"github.com/prepin/tick-sync/internal/usecase/tickticktokenreminder"
 )
 
-// JobsRunner defines the interface for background jobs started by App.
-type JobsRunner interface {
-	Start(ctx context.Context)
+// Runner defines a long-running app component supervised by App.
+type Runner interface {
+	Run(ctx context.Context) error
 }
 
 // Option configures an App during construction.
@@ -36,14 +37,14 @@ type Option func(*App)
 type App struct {
 	cfg          config.Config
 	db           *sql.DB
-	jobs         []JobsRunner
+	jobs         []Runner
 	jobsOverride bool
-	web          JobsRunner
+	web          Runner
 	logger       *slog.Logger
 }
 
 // WithJobs overrides the default jobs created by New.
-func WithJobs(jobs []JobsRunner) Option {
+func WithJobs(jobs []Runner) Option {
 	return func(a *App) {
 		a.jobs = jobs
 		a.jobsOverride = true
@@ -145,7 +146,7 @@ func (a *App) configureSync(ctx context.Context, tokenRepo *oauthtokens.Repo) er
 		googletasksync.WithLocation(a.cfg.Location),
 	)
 	reminderUC := tickticktokenreminder.New(tokenRepo, ticktick)
-	a.jobs = []JobsRunner{
+	a.jobs = []Runner{
 		googletasksyncjob.New(uc, a.cfg.PollInterval, googletasksyncjob.WithLogger(a.logger)),
 		tickticktokenreminderjob.New(
 			reminderUC,
@@ -174,16 +175,59 @@ func (a *App) closeDBAfterInitFailure(ctx context.Context, logMessage string, er
 func (a *App) Run(ctx context.Context) error {
 	a.logger.InfoContext(ctx, "sync service started", "poll_interval", a.cfg.PollInterval)
 
-	for _, job := range a.jobs {
-		job.Start(ctx)
-	}
+	runners := make([]Runner, 0, len(a.jobs)+1)
+	runners = append(runners, a.jobs...)
 	if a.web != nil {
-		a.web.Start(ctx)
+		runners = append(runners, a.web)
+	}
+	if len(runners) == 0 {
+		<-ctx.Done()
+		a.logger.InfoContext(ctx, "shutdown requested")
+		return nil
 	}
 
-	<-ctx.Done()
+	runCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	resultCh := make(chan runnerResult, len(runners))
+	var wg sync.WaitGroup
+	for index, runner := range runners {
+		wg.Go(func() {
+			resultCh <- runnerResult{index: index, err: runner.Run(runCtx)}
+		})
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultCh)
+	}()
+
+	for result := range resultCh {
+		if result.err != nil {
+			cancel()
+			drainRunnerResults(resultCh)
+			return fmt.Errorf("runner %d failed: %w", result.index, result.err)
+		}
+		if runCtx.Err() == nil {
+			cancel()
+			drainRunnerResults(resultCh)
+			return fmt.Errorf("runner %d stopped unexpectedly", result.index)
+		}
+	}
+
 	a.logger.InfoContext(ctx, "shutdown requested")
 	return nil
+}
+
+type runnerResult struct {
+	index int
+	err   error
+}
+
+func drainRunnerResults(resultCh <-chan runnerResult) {
+	for result := range resultCh {
+		_ = result
+	}
 }
 
 // Close releases the database connection.

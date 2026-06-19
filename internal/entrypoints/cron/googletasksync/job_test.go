@@ -49,9 +49,17 @@ func TestJobStartExecutesSyncAndStopsOnCancel(t *testing.T) {
 	job := cron.New(uc, time.Minute)
 
 	ctx, cancel := context.WithCancel(t.Context())
-	job.Start(ctx)
+	done := make(chan error, 1)
+	go func() { done <- job.Run(ctx) }()
 	cancel()
-	time.Sleep(50 * time.Millisecond)
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("expected job to stop")
+	}
 }
 
 // Continues polling after the initial sync fails so a later auth token can unblock future ticks.
@@ -80,7 +88,7 @@ func TestJobStartContinuesAfterInitialExecuteFailure(t *testing.T) {
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := cron.New(uc, 10*time.Millisecond)
 
-	job.Start(ctx)
+	go func() { _ = job.Run(ctx) }()
 	select {
 	case <-done:
 	case <-time.After(time.Second):

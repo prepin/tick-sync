@@ -43,11 +43,11 @@ func TestMainRunsSyncAndStopsOnContextCancel(t *testing.T) {
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := googletasksyncjob.New(uc, time.Minute)
 
-	cfg := config.Config{DBPath: dbPath, PollInterval: time.Minute}
+	cfg := config.Config{DBPath: dbPath, HTTPAddr: "127.0.0.1:0", PollInterval: time.Minute}
 	ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 	defer cancel()
 
-	application, err := app.New(ctx, cfg, app.WithJobs([]app.JobsRunner{job}))
+	application, err := app.New(ctx, cfg, app.WithJobs([]app.Runner{job}))
 	if err != nil {
 		t.Fatalf("new app: %v", err)
 	}

@@ -52,12 +52,8 @@ func WithLogger(logger *slog.Logger) Option {
 	}
 }
 
-// Start begins serving until the context is cancelled.
-func (s *Server) Start(ctx context.Context) {
-	go s.run(ctx)
-}
-
-func (s *Server) run(ctx context.Context) {
+// Run serves HTTP requests until the context is cancelled or serving fails.
+func (s *Server) Run(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
@@ -76,9 +72,14 @@ func (s *Server) run(ctx context.Context) {
 			s.server.Addr,
 		)
 	}
-	if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		s.logger.ErrorContext(ctx, "http server failed", "error", err)
+	if err := s.server.ListenAndServe(); err != nil {
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return fmt.Errorf("serve http: %w", err)
 	}
+
+	return nil
 }
 
 func isPublicBindAddress(addr string) bool {
