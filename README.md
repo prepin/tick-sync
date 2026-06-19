@@ -114,6 +114,8 @@ http://localhost:8080/
 
 If `HTTP_ADDR` is reachable from other machines, set `HTTP_BASIC_AUTH_PASSWORD` so the setup UI and OAuth callback endpoints require HTTP Basic Auth.
 
+The unauthenticated `GET /healthz` endpoint returns `204 No Content` for container or uptime health checks.
+
 More details:
 
 - [Setup guide](docs/setup.md)

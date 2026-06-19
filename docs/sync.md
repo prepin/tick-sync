@@ -54,6 +54,8 @@ The service starts even before Google Tasks or TickTick are connected. Complete 
 
 When `HTTP_BASIC_AUTH_PASSWORD` is set, the setup UI and OAuth callback endpoints require HTTP Basic Auth. Set it when `HTTP_ADDR` is reachable from other machines.
 
+`GET /healthz` returns `204 No Content` and is not protected by HTTP Basic Auth so container and uptime checks can call it without credentials.
+
 `HTTP_CLIENT_TIMEOUT` limits outbound OAuth, Google Tasks, and TickTick API requests. It defaults to `30s` so stalled external calls do not block sync jobs indefinitely.
 
 If the stored TickTick token expires in less than two weeks, the service creates one medium-priority TickTick task reminding you to refresh it. This reminder is created once per token and has no due date.

@@ -132,6 +132,26 @@ func TestBasicAuthProtectsOAuthCallback(t *testing.T) {
 	}
 }
 
+// Allows health checks without credentials even when HTTP basic auth is configured.
+func TestHealthzBypassesBasicAuth(t *testing.T) {
+	t.Parallel()
+	h := newHandler(config.Config{
+		HTTPBasicAuthUsername: "tick-sync",
+		HTTPBasicAuthPassword: "secret",
+	}, newTestTokenRepo(t))
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+
+	h.routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("unexpected status: %d", rec.Code)
+	}
+	if rec.Header().Get("WWW-Authenticate") != "" {
+		t.Fatal("expected health check to skip basic auth challenge")
+	}
+}
+
 // Configures the outbound OAuth exchange HTTP client timeout from application config.
 func TestNewHandlerConfiguresHTTPClientTimeout(t *testing.T) {
 	t.Parallel()

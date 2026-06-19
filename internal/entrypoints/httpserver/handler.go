@@ -62,6 +62,7 @@ func newHandler(cfg config.Config, tokens TokenStore) *handler {
 func (h *handler) routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", h.index)
+	mux.HandleFunc("GET /healthz", h.healthz)
 	mux.HandleFunc("GET /google/auth", h.googleAuth)
 	mux.HandleFunc("GET /google/callback", h.googleCallback)
 	mux.HandleFunc("GET /ticktick/auth", h.tickTickAuth)
@@ -75,6 +76,11 @@ func (h *handler) withBasicAuth(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/healthz" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		username, password, ok := r.BasicAuth()
 		if !ok ||
 			!constantTimeStringEqual(username, h.cfg.HTTPBasicAuthUsername) ||
@@ -92,6 +98,10 @@ func constantTimeStringEqual(left, right string) bool {
 	leftHash := sha256.Sum256([]byte(left))
 	rightHash := sha256.Sum256([]byte(right))
 	return subtle.ConstantTimeCompare(leftHash[:], rightHash[:]) == 1
+}
+
+func (h *handler) healthz(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (h *handler) index(w http.ResponseWriter, r *http.Request) {
