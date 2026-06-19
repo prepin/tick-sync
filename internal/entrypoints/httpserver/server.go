@@ -69,7 +69,12 @@ func (s *Server) run(ctx context.Context) {
 
 	s.logger.InfoContext(ctx, "http server started", "addr", s.server.Addr)
 	if s.publicBindPossible && !s.basicAuthEnabled {
-		s.logger.WarnContext(ctx, "http server may be reachable from other hosts without basic auth", "addr", s.server.Addr)
+		s.logger.WarnContext(
+			ctx,
+			"http server may be reachable from other hosts without basic auth",
+			"addr",
+			s.server.Addr,
+		)
 	}
 	if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		s.logger.ErrorContext(ctx, "http server failed", "error", err)

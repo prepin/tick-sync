@@ -31,7 +31,7 @@ func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault
 	}
 
 	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{task}, nil)
-	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
 		Title:              "Buy milk",
 		Details:            "Remember lactose-free",
@@ -47,6 +47,7 @@ func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault
 		SyncedAt:       syncedAt,
 	}).Return(nil)
 	google.EXPECT().Complete(ctx, "google-1").Return(nil)
+	repo.EXPECT().MarkGoogleTaskFinalized(ctx, "google-1", syncedAt).Return(nil)
 
 	uc := googletasksync.New(
 		google,
@@ -111,7 +112,7 @@ func TestUsecaseSyncGoogleTasksToTickTickImportsTaskDueTodayWhenDelayDisabled(t 
 	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{
 		{ID: "google-1", Title: "Remind me soon", Due: "2026-06-12T00:00:00.000Z"},
 	}, nil)
-	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
 		Title:              "Remind me soon",
 		Due:                "2026-06-12T00:00:00.000Z",
@@ -119,6 +120,7 @@ func TestUsecaseSyncGoogleTasksToTickTickImportsTaskDueTodayWhenDelayDisabled(t 
 	}).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
 	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
 	google.EXPECT().Complete(ctx, "google-1").Return(nil)
+	repo.EXPECT().MarkGoogleTaskFinalized(ctx, "google-1", now).Return(nil)
 
 	result, err := googletasksync.New(
 		google,
@@ -150,7 +152,7 @@ func TestUsecaseSyncGoogleTasksToTickTickImportsOverdueTaskWhenTodayDelayIsConfi
 	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{
 		{ID: "google-1", Title: "Yesterday task", Due: "2026-06-11T00:00:00.000Z"},
 	}, nil)
-	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
 		Title:              "Yesterday task",
 		Due:                "2026-06-11T00:00:00.000Z",
@@ -158,6 +160,7 @@ func TestUsecaseSyncGoogleTasksToTickTickImportsOverdueTaskWhenTodayDelayIsConfi
 	}).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
 	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
 	google.EXPECT().Complete(ctx, "google-1").Return(nil)
+	repo.EXPECT().MarkGoogleTaskFinalized(ctx, "google-1", now).Return(nil)
 
 	result, err := googletasksync.New(
 		google,
@@ -190,7 +193,7 @@ func TestUsecaseSyncGoogleTasksToTickTickImportsFutureTaskWhenTodayDelayIsConfig
 	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{
 		{ID: "google-1", Title: "Tomorrow task", Due: "2026-06-13T00:00:00.000Z"},
 	}, nil)
-	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
 		Title:              "Tomorrow task",
 		Due:                "2026-06-13T00:00:00.000Z",
@@ -198,6 +201,7 @@ func TestUsecaseSyncGoogleTasksToTickTickImportsFutureTaskWhenTodayDelayIsConfig
 	}).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
 	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
 	google.EXPECT().Complete(ctx, "google-1").Return(nil)
+	repo.EXPECT().MarkGoogleTaskFinalized(ctx, "google-1", now).Return(nil)
 
 	result, err := googletasksync.New(
 		google,
@@ -229,10 +233,11 @@ func TestUsecaseSyncGoogleTasksToTickTickDeletesTaskWhenConfigured(t *testing.T)
 	task := googletasksync.GoogleTaskView{ID: "google-1", Title: "Buy milk"}
 
 	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{task}, nil)
-	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(ctx, gomock.Any()).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
 	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
 	google.EXPECT().Delete(ctx, "google-1").Return(nil)
+	repo.EXPECT().MarkGoogleTaskFinalized(ctx, "google-1", gomock.Any()).Return(nil)
 
 	result, err := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionDelete).Handle(ctx)
 	if err != nil {
@@ -254,7 +259,12 @@ func TestUsecaseSyncGoogleTasksToTickTickSkipsAlreadyProcessedTask(t *testing.T)
 	repo := mocks.NewMockSyncedTaskRepository(ctrl)
 
 	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{{ID: "google-1"}}, nil)
-	repo.EXPECT().IsProcessed(ctx, "google-1").Return(true, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{
+		GoogleTaskID:      "google-1",
+		TickTickTaskID:    "ticktick-1",
+		PostSyncAction:    googletasksync.PostSyncActionComplete,
+		GoogleFinalizedAt: time.Date(2026, 6, 10, 12, 0, 0, 0, time.UTC),
+	}, true, nil)
 
 	result, err := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete).Handle(ctx)
 	if err != nil {
@@ -262,6 +272,102 @@ func TestUsecaseSyncGoogleTasksToTickTickSkipsAlreadyProcessedTask(t *testing.T)
 	}
 
 	want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 1, Skipped: 1}
+	assertResult(t, result, want)
+}
+
+// Retries completing Google without creating another TickTick task when a previous sync was not finalized.
+func TestUsecaseSyncGoogleTasksToTickTickCompletesUnfinalizedSyncedTask(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctrl := gomock.NewController(t)
+
+	google := mocks.NewMockGoogleTasksGateway(ctrl)
+	ticktick := mocks.NewMockTickTickGateway(ctrl)
+	repo := mocks.NewMockSyncedTaskRepository(ctrl)
+	finalizedAt := time.Date(2026, 6, 10, 13, 0, 0, 0, time.UTC)
+
+	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{{ID: "google-1"}}, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{
+		GoogleTaskID:   "google-1",
+		TickTickTaskID: "ticktick-1",
+		PostSyncAction: googletasksync.PostSyncActionComplete,
+	}, true, nil)
+	google.EXPECT().Complete(ctx, "google-1").Return(nil)
+	repo.EXPECT().MarkGoogleTaskFinalized(ctx, "google-1", finalizedAt).Return(nil)
+
+	result, err := googletasksync.New(
+		google,
+		ticktick,
+		repo,
+		googletasksync.PostSyncActionComplete,
+		googletasksync.WithClock(func() time.Time { return finalizedAt }),
+	).Handle(ctx)
+	if err != nil {
+		t.Fatalf("sync google tasks to ticktick: %v", err)
+	}
+
+	want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 1, Completed: 1}
+	assertResult(t, result, want)
+}
+
+// Retries deleting Google without creating another TickTick task when delete-mode sync was not finalized.
+func TestUsecaseSyncGoogleTasksToTickTickDeletesUnfinalizedSyncedTask(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctrl := gomock.NewController(t)
+
+	google := mocks.NewMockGoogleTasksGateway(ctrl)
+	ticktick := mocks.NewMockTickTickGateway(ctrl)
+	repo := mocks.NewMockSyncedTaskRepository(ctrl)
+	finalizedAt := time.Date(2026, 6, 10, 13, 0, 0, 0, time.UTC)
+
+	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{{ID: "google-1"}}, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{
+		GoogleTaskID:   "google-1",
+		TickTickTaskID: "ticktick-1",
+		PostSyncAction: googletasksync.PostSyncActionDelete,
+	}, true, nil)
+	google.EXPECT().Delete(ctx, "google-1").Return(nil)
+	repo.EXPECT().MarkGoogleTaskFinalized(ctx, "google-1", finalizedAt).Return(nil)
+
+	result, err := googletasksync.New(
+		google,
+		ticktick,
+		repo,
+		googletasksync.PostSyncActionComplete,
+		googletasksync.WithClock(func() time.Time { return finalizedAt }),
+	).Handle(ctx)
+	if err != nil {
+		t.Fatalf("sync google tasks to ticktick: %v", err)
+	}
+
+	want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 1, Deleted: 1}
+	assertResult(t, result, want)
+}
+
+// Keeps the saved mapping unfinalized when Google completion fails so a later run can retry it.
+func TestUsecaseSyncGoogleTasksToTickTickReportsUnfinalizedTaskWhenGoogleCompletionFails(t *testing.T) {
+	t.Parallel()
+	ctx := t.Context()
+	ctrl := gomock.NewController(t)
+
+	google := mocks.NewMockGoogleTasksGateway(ctrl)
+	ticktick := mocks.NewMockTickTickGateway(ctrl)
+	repo := mocks.NewMockSyncedTaskRepository(ctrl)
+	completeErr := errors.New("google unavailable")
+
+	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{{ID: "google-1"}}, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{}, false, nil)
+	ticktick.EXPECT().CreateInboxTask(ctx, gomock.Any()).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
+	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
+	google.EXPECT().Complete(ctx, "google-1").Return(completeErr)
+
+	result, err := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete).Handle(ctx)
+	if err == nil {
+		t.Fatal("expected sync error")
+	}
+
+	want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 1, Created: 1, Failed: 1, Errors: []error{completeErr}}
 	assertResult(t, result, want)
 }
 
@@ -277,7 +383,7 @@ func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenTickTickCreation
 	createErr := errors.New("ticktick unavailable")
 
 	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{{ID: "google-1"}}, nil)
-	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(ctx, gomock.Any()).Return(googletasksync.TickTickTaskView{}, createErr)
 
 	result, err := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete).Handle(ctx)
@@ -301,7 +407,7 @@ func TestUsecaseSyncGoogleTasksToTickTickDoesNotCompleteTaskWhenRepoRecordFails(
 	repoErr := errors.New("db unavailable")
 
 	google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{{ID: "google-1"}}, nil)
-	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(ctx, gomock.Any()).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
 	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(repoErr)
 
@@ -330,16 +436,17 @@ func TestUsecaseSyncGoogleTasksToTickTickContinuesAfterPerTaskError(t *testing.T
 		{ID: "google-2", Title: "Second task"},
 	}, nil)
 
-	repo.EXPECT().IsProcessed(ctx, "google-1").Return(false, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-1").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(ctx, gomock.Any()).Return(googletasksync.TickTickTaskView{}, createErr)
 
-	repo.EXPECT().IsProcessed(ctx, "google-2").Return(false, nil)
+	repo.EXPECT().GetSyncState(ctx, "google-2").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
 		Title:              "Second task",
 		SourceGoogleTaskID: "google-2",
 	}).Return(googletasksync.TickTickTaskView{ID: "ticktick-2"}, nil)
 	repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
 	google.EXPECT().Complete(ctx, "google-2").Return(nil)
+	repo.EXPECT().MarkGoogleTaskFinalized(ctx, "google-2", gomock.Any()).Return(nil)
 
 	result, err := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete).Handle(ctx)
 	if err == nil {

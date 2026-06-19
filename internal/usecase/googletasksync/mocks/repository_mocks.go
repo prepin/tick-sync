@@ -12,6 +12,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	gomock "go.uber.org/mock/gomock"
@@ -41,19 +42,34 @@ func (m *MockSyncedTaskRepository) EXPECT() *MockSyncedTaskRepositoryMockRecorde
 	return m.recorder
 }
 
-// IsProcessed mocks base method.
-func (m *MockSyncedTaskRepository) IsProcessed(ctx context.Context, googleTaskID string) (bool, error) {
+// GetSyncState mocks base method.
+func (m *MockSyncedTaskRepository) GetSyncState(ctx context.Context, googleTaskID string) (googletasksync.SyncState, bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsProcessed", ctx, googleTaskID)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "GetSyncState", ctx, googleTaskID)
+	ret0, _ := ret[0].(googletasksync.SyncState)
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
-// IsProcessed indicates an expected call of IsProcessed.
-func (mr *MockSyncedTaskRepositoryMockRecorder) IsProcessed(ctx, googleTaskID any) *gomock.Call {
+// GetSyncState indicates an expected call of GetSyncState.
+func (mr *MockSyncedTaskRepositoryMockRecorder) GetSyncState(ctx, googleTaskID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsProcessed", reflect.TypeOf((*MockSyncedTaskRepository)(nil).IsProcessed), ctx, googleTaskID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSyncState", reflect.TypeOf((*MockSyncedTaskRepository)(nil).GetSyncState), ctx, googleTaskID)
+}
+
+// MarkGoogleTaskFinalized mocks base method.
+func (m *MockSyncedTaskRepository) MarkGoogleTaskFinalized(ctx context.Context, googleTaskID string, finalizedAt time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkGoogleTaskFinalized", ctx, googleTaskID, finalizedAt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkGoogleTaskFinalized indicates an expected call of MarkGoogleTaskFinalized.
+func (mr *MockSyncedTaskRepositoryMockRecorder) MarkGoogleTaskFinalized(ctx, googleTaskID, finalizedAt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkGoogleTaskFinalized", reflect.TypeOf((*MockSyncedTaskRepository)(nil).MarkGoogleTaskFinalized), ctx, googleTaskID, finalizedAt)
 }
 
 // SaveSyncedTask mocks base method.

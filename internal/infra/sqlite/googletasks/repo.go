@@ -3,6 +3,7 @@ package googletasks
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -22,4 +23,12 @@ func New(db *sql.DB) (*Repo, error) {
 
 func formatTime(value time.Time) string {
 	return value.UTC().Format(time.RFC3339Nano)
+}
+
+func parseTime(value string) (time.Time, error) {
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parse time %q: %w", value, err)
+	}
+	return parsed, nil
 }

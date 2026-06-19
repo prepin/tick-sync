@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-// Records a synced task and returns true for subsequent IsProcessed checks.
+// Records a synced task and returns an unfinalized sync state for subsequent checks.
 func TestSaveSyncedTaskRecordsTask(t *testing.T) {
 	t.Parallel()
 	ctx := t.Context()
@@ -15,12 +15,15 @@ func TestSaveSyncedTaskRecordsTask(t *testing.T) {
 		t.Fatalf("save synced task: %v", err)
 	}
 
-	processed, err := repo.IsProcessed(ctx, "google-1")
+	state, found, err := repo.GetSyncState(ctx, "google-1")
 	if err != nil {
-		t.Fatalf("is processed: %v", err)
+		t.Fatalf("get sync state: %v", err)
 	}
-	if !processed {
-		t.Fatal("expected task to be processed")
+	if !found {
+		t.Fatal("expected task to be recorded")
+	}
+	if state.IsGoogleFinalized() {
+		t.Fatal("expected task to be unfinalized")
 	}
 }
 
@@ -45,9 +48,10 @@ func TestSaveSyncedTaskStoresRecordFields(t *testing.T) {
 		TickTickTaskID string
 		PostSyncAction string
 		SyncedAt       string
+		FinalizedAt    string
 	}
 	err = db.QueryRowContext(ctx, `
-SELECT google_updated, google_title, ticktick_task_id, post_sync_action, synced_at
+SELECT google_updated, google_title, ticktick_task_id, post_sync_action, synced_at, google_finalized_at
 FROM synced_google_tasks
 WHERE google_task_id = ?;`, params.GoogleTaskID).Scan(
 		&got.GoogleUpdated,
@@ -55,6 +59,7 @@ WHERE google_task_id = ?;`, params.GoogleTaskID).Scan(
 		&got.TickTickTaskID,
 		&got.PostSyncAction,
 		&got.SyncedAt,
+		&got.FinalizedAt,
 	)
 	if err != nil {
 		t.Fatalf("query stored record: %v", err)
@@ -64,7 +69,8 @@ WHERE google_task_id = ?;`, params.GoogleTaskID).Scan(
 		got.GoogleTitle != params.GoogleTitle ||
 		got.TickTickTaskID != params.TickTickTaskID ||
 		got.PostSyncAction != string(params.PostSyncAction) ||
-		got.SyncedAt != formatTime(params.SyncedAt) {
+		got.SyncedAt != formatTime(params.SyncedAt) ||
+		got.FinalizedAt != "" {
 		t.Fatalf("unexpected stored record: %+v", got)
 	}
 }

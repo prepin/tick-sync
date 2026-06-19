@@ -35,13 +35,16 @@ func (u *SyncGoogleTasksToTickTickUseCase) syncTaskToTickTick(
 		return nil
 	}
 
-	processed, err := u.repo.IsProcessed(ctx, googleTask.ID)
+	state, found, err := u.repo.GetSyncState(ctx, googleTask.ID)
 	if err != nil {
-		return fmt.Errorf("check processed google task %s: %w", googleTask.ID, err)
+		return fmt.Errorf("get sync state for google task %s: %w", googleTask.ID, err)
 	}
-	if processed {
+	if found && state.IsGoogleFinalized() {
 		result.Skipped++
 		return nil
+	}
+	if found {
+		return u.finalizeGoogleTask(ctx, googleTask.ID, state.PostSyncAction, result)
 	}
 
 	tickTickTask, err := u.ticktick.CreateInboxTask(ctx, CreateTickTickTaskInput{
@@ -66,19 +69,32 @@ func (u *SyncGoogleTasksToTickTickUseCase) syncTaskToTickTick(
 		return fmt.Errorf("record processed google task %s: %w", googleTask.ID, err)
 	}
 
-	switch u.postSyncAction {
+	return u.finalizeGoogleTask(ctx, googleTask.ID, u.postSyncAction, result)
+}
+
+func (u *SyncGoogleTasksToTickTickUseCase) finalizeGoogleTask(
+	ctx context.Context,
+	googleTaskID string,
+	postSyncAction PostSyncAction,
+	result *SyncGoogleTasksToTickTickResult,
+) error {
+	switch postSyncAction {
 	case PostSyncActionDelete:
-		if err := u.google.Delete(ctx, googleTask.ID); err != nil {
-			return fmt.Errorf("delete google task %s: %w", googleTask.ID, err)
+		if err := u.google.Delete(ctx, googleTaskID); err != nil {
+			return fmt.Errorf("delete google task %s: %w", googleTaskID, err)
 		}
 		result.Deleted++
 	case PostSyncActionComplete:
-		if err := u.google.Complete(ctx, googleTask.ID); err != nil {
-			return fmt.Errorf("complete google task %s: %w", googleTask.ID, err)
+		if err := u.google.Complete(ctx, googleTaskID); err != nil {
+			return fmt.Errorf("complete google task %s: %w", googleTaskID, err)
 		}
 		result.Completed++
 	default:
-		return fmt.Errorf("unsupported post sync action %q", u.postSyncAction)
+		return fmt.Errorf("unsupported post sync action %q", postSyncAction)
+	}
+
+	if err := u.repo.MarkGoogleTaskFinalized(ctx, googleTaskID, u.now()); err != nil {
+		return fmt.Errorf("record finalized google task %s: %w", googleTaskID, err)
 	}
 
 	return nil

@@ -15,10 +15,24 @@ type SaveSyncedTaskParams struct {
 	SyncedAt       time.Time
 }
 
+// SyncState describes whether a Google task was copied to TickTick and finalized on Google.
+type SyncState struct {
+	GoogleTaskID      string
+	TickTickTaskID    string
+	PostSyncAction    PostSyncAction
+	GoogleFinalizedAt time.Time
+}
+
+// IsGoogleFinalized returns true when the source Google task was completed or deleted.
+func (s SyncState) IsGoogleFinalized() bool {
+	return !s.GoogleFinalizedAt.IsZero()
+}
+
 // SyncedTaskRepository is the persistence port for idempotency records.
 type SyncedTaskRepository interface {
-	IsProcessed(ctx context.Context, googleTaskID string) (bool, error)
+	GetSyncState(ctx context.Context, googleTaskID string) (SyncState, bool, error)
 	SaveSyncedTask(ctx context.Context, params SaveSyncedTaskParams) error
+	MarkGoogleTaskFinalized(ctx context.Context, googleTaskID string, finalizedAt time.Time) error
 }
 
 //go:generate go tool mockgen -source=repository.go -destination=mocks/repository_mocks.go -package=mocks

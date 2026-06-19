@@ -15,6 +15,7 @@ The sync command:
 - Creates matching tasks in TickTick.
 - Records the Google-to-TickTick mapping in `synced_google_tasks`.
 - Completes the Google task by default after successful TickTick creation and DB recording.
+- Retries Google completion or deletion on later runs if TickTick creation was recorded but Google finalization failed.
 - Continues processing other tasks when one task fails.
 
 ## Environment Variables

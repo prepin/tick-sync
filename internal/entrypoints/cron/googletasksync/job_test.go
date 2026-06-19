@@ -44,7 +44,6 @@ func TestJobStartExecutesSyncAndStopsOnCancel(t *testing.T) {
 	repo := mocks.NewMockSyncedTaskRepository(ctrl)
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
-	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := cron.New(uc, time.Minute)
@@ -77,7 +76,6 @@ func TestJobStartContinuesAfterInitialExecuteFailure(t *testing.T) {
 				return nil, nil
 			}),
 	)
-	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := cron.New(uc, 10*time.Millisecond)
@@ -101,7 +99,6 @@ func TestJobExecuteReportsSuccess(t *testing.T) {
 	repo := mocks.NewMockSyncedTaskRepository(ctrl)
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
-	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	job := cron.New(uc, time.Minute)
@@ -122,7 +119,6 @@ func TestJobExecuteLogsResultWithJobName(t *testing.T) {
 	repo := mocks.NewMockSyncedTaskRepository(ctrl)
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return(nil, nil)
-	repo.EXPECT().IsProcessed(gomock.Any(), gomock.Any()).AnyTimes().Return(false, nil)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)
 	buf, logger := newTestLogger(t)
@@ -156,7 +152,7 @@ func TestJobExecuteLogsErrorsAtErrorLevel(t *testing.T) {
 	createErr := errors.New("ticktick unavailable")
 
 	google.EXPECT().ListUncompleted(gomock.Any()).Return([]googletasksync.GoogleTaskView{{ID: "g1"}}, nil)
-	repo.EXPECT().IsProcessed(gomock.Any(), "g1").Return(false, nil)
+	repo.EXPECT().GetSyncState(gomock.Any(), "g1").Return(googletasksync.SyncState{}, false, nil)
 	ticktick.EXPECT().CreateInboxTask(gomock.Any(), gomock.Any()).Return(googletasksync.TickTickTaskView{}, createErr)
 
 	uc := googletasksync.New(google, ticktick, repo, googletasksync.PostSyncActionComplete)

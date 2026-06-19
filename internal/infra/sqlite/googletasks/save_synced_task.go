@@ -14,8 +14,9 @@ INSERT OR IGNORE INTO synced_google_tasks (
   google_title,
   ticktick_task_id,
   post_sync_action,
-  synced_at
-) VALUES (?, ?, ?, ?, ?, ?);`
+  synced_at,
+  google_finalized_at
+) VALUES (?, ?, ?, ?, ?, ?, ?);`
 
 // SaveSyncedTask records a synced task mapping in SQLite.
 func (r *Repo) SaveSyncedTask(ctx context.Context, params googletasksync.SaveSyncedTaskParams) error {
@@ -26,6 +27,7 @@ func (r *Repo) SaveSyncedTask(ctx context.Context, params googletasksync.SaveSyn
 		params.TickTickTaskID,
 		string(params.PostSyncAction),
 		formatTime(params.SyncedAt),
+		"",
 	)
 	if err != nil {
 		return fmt.Errorf("save synced google task %s: %w", params.GoogleTaskID, err)
