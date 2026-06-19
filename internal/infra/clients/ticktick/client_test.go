@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	_ "modernc.org/sqlite"
 
@@ -40,6 +41,22 @@ func TestNewAppliesDefaults(t *testing.T) {
 	}
 	if client.timeZone != "" {
 		t.Fatalf("expected empty timezone, got %s", client.timeZone)
+	}
+}
+
+// Configures the outbound TickTick API HTTP client timeout from application config.
+func TestNewConfiguresHTTPClientTimeout(t *testing.T) {
+	t.Parallel()
+	client, err := New(config.Config{
+		HTTPClientTimeout:  12 * time.Second,
+		TickTickAPIBaseURL: defaultAPIBaseURL,
+	}, newTestTokenRepo(t))
+	if err != nil {
+		t.Fatalf("new ticktick client: %v", err)
+	}
+
+	if client.httpClient.Timeout != 12*time.Second {
+		t.Fatalf("unexpected timeout: %s", client.httpClient.Timeout)
 	}
 }
 

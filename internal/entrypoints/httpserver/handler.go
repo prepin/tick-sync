@@ -56,7 +56,7 @@ type oauthCallbackConfig struct {
 }
 
 func newHandler(cfg config.Config, tokens TokenStore) *handler {
-	return &handler{cfg: cfg, tokens: tokens, httpClient: http.DefaultClient}
+	return &handler{cfg: cfg, tokens: tokens, httpClient: &http.Client{Timeout: cfg.HTTPClientTimeout}}
 }
 
 func (h *handler) routes() http.Handler {

@@ -19,6 +19,7 @@ type Config struct {
 	HTTPAddr                 string                        `env:"HTTP_ADDR"                  envDefault:":8080"`
 	HTTPBasicAuthUsername    string                        `env:"HTTP_BASIC_AUTH_USERNAME"   envDefault:"tick-sync"`
 	HTTPBasicAuthPassword    string                        `env:"HTTP_BASIC_AUTH_PASSWORD"`
+	HTTPClientTimeout        time.Duration                 `env:"HTTP_CLIENT_TIMEOUT"        envDefault:"30s"`
 	GooglePostSyncAction     googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION"    envDefault:"complete"`
 	GoogleTodayImportDelay   bool                          `env:"GOOGLE_TODAY_IMPORT_DELAY"  envDefault:"false"`
 	PollInterval             time.Duration                 `env:"POLL_INTERVAL"              envDefault:"5m"`
@@ -74,6 +75,9 @@ func Load() (Config, error) {
 	}
 	if cfg.TickTickReminderInterval <= 0 {
 		return Config{}, errors.New("TICKTICK_REMINDER_INTERVAL must be greater than zero")
+	}
+	if cfg.HTTPClientTimeout <= 0 {
+		return Config{}, errors.New("HTTP_CLIENT_TIMEOUT must be greater than zero")
 	}
 	if cfg.TZ == "" {
 		cfg.Location = time.Local

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -26,15 +27,22 @@ type TokenStore interface {
 // Client is the Google Tasks API adapter.
 type Client struct {
 	service    *tasksapi.Service
+	httpClient *http.Client
 	taskListID string
 }
 
 // New creates a Google Tasks client from config.
 func New(ctx context.Context, cfg config.Config, tokens TokenStore) (*Client, error) {
 	var opts []option.ClientOption
+	httpClient := &http.Client{Timeout: cfg.HTTPClientTimeout}
 
 	if cfg.GoogleAPIEndpoint != "" {
-		opts = append(opts, option.WithEndpoint(cfg.GoogleAPIEndpoint), option.WithoutAuthentication())
+		opts = append(
+			opts,
+			option.WithEndpoint(cfg.GoogleAPIEndpoint),
+			option.WithoutAuthentication(),
+			option.WithHTTPClient(httpClient),
+		)
 	} else {
 		if tokens == nil {
 			return nil, errors.New("google tasks client: token store is nil")
@@ -47,10 +55,12 @@ func New(ctx context.Context, cfg config.Config, tokens TokenStore) (*Client, er
 			Scopes:       []string{tasksapi.TasksScope},
 		}
 
-		opts = append(opts, option.WithHTTPClient(oauth2.NewClient(ctx, &dbTokenSource{
+		httpClient = oauth2.NewClient(ctx, &dbTokenSource{
 			config: oauthConfig,
 			tokens: tokens,
-		})))
+		})
+		httpClient.Timeout = cfg.HTTPClientTimeout
+		opts = append(opts, option.WithHTTPClient(httpClient))
 	}
 
 	service, err := tasksapi.NewService(ctx, opts...)
@@ -58,7 +68,7 @@ func New(ctx context.Context, cfg config.Config, tokens TokenStore) (*Client, er
 		return nil, err
 	}
 
-	return &Client{service: service, taskListID: cfg.GoogleTaskListID}, nil
+	return &Client{service: service, httpClient: httpClient, taskListID: cfg.GoogleTaskListID}, nil
 }
 
 type dbTokenSource struct {

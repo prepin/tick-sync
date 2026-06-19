@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	_ "modernc.org/sqlite"
 
@@ -128,6 +129,16 @@ func TestBasicAuthProtectsOAuthCallback(t *testing.T) {
 
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("unexpected status: %d", rec.Code)
+	}
+}
+
+// Configures the outbound OAuth exchange HTTP client timeout from application config.
+func TestNewHandlerConfiguresHTTPClientTimeout(t *testing.T) {
+	t.Parallel()
+	h := newHandler(config.Config{HTTPClientTimeout: 12 * time.Second}, newTestTokenRepo(t))
+
+	if h.httpClient.Timeout != 12*time.Second {
+		t.Fatalf("unexpected timeout: %s", h.httpClient.Timeout)
 	}
 }
 

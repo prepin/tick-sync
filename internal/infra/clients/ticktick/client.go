@@ -50,7 +50,7 @@ func New(cfg config.Config, tokenProvider AccessTokenProvider) (*Client, error) 
 	}
 
 	return &Client{
-		httpClient:    http.DefaultClient,
+		httpClient:    &http.Client{Timeout: cfg.HTTPClientTimeout},
 		tokenProvider: tokenProvider,
 		baseURL:       apiBaseURL,
 		timeZone:      cfg.TZ,

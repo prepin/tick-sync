@@ -12,6 +12,7 @@ import (
 func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	t.Setenv("DB_PATH", "")
 	t.Setenv("HTTP_ADDR", "")
+	t.Setenv("HTTP_CLIENT_TIMEOUT", "")
 	t.Setenv("GOOGLE_POST_SYNC_ACTION", "")
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
 	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
@@ -46,6 +47,9 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	}
 	if cfg.HTTPBasicAuthPassword != "" {
 		t.Fatalf("unexpected http basic auth password: %s", cfg.HTTPBasicAuthPassword)
+	}
+	if cfg.HTTPClientTimeout != 30*time.Second {
+		t.Fatalf("unexpected http client timeout: %s", cfg.HTTPClientTimeout)
 	}
 	if cfg.GooglePostSyncAction != googletasksync.PostSyncActionComplete {
 		t.Fatalf("unexpected post sync action: %s", cfg.GooglePostSyncAction)
@@ -202,6 +206,21 @@ func TestLoadParsesTickTickReminderIntervalDuration(t *testing.T) {
 	}
 }
 
+// Loads a custom duration into the configured outbound HTTP client timeout.
+func TestLoadParsesHTTPClientTimeoutDuration(t *testing.T) {
+	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+	t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
+	t.Setenv("HTTP_CLIENT_TIMEOUT", "12s")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if cfg.HTTPClientTimeout != 12*time.Second {
+		t.Fatalf("unexpected timeout: %s", cfg.HTTPClientTimeout)
+	}
+}
+
 // Loads the conventional TZ environment variable as the application timezone.
 func TestLoadParsesTZLocation(t *testing.T) {
 	t.Setenv("GOOGLE_CLIENT_ID", "client-id")
@@ -297,6 +316,25 @@ func TestLoadRejectsNonPositiveTickTickReminderInterval(t *testing.T) {
 				t.Fatalf("expected error for %q", value)
 			}
 			if !strings.Contains(err.Error(), "TICKTICK_REMINDER_INTERVAL") {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+// Reports an error when HTTP_CLIENT_TIMEOUT is zero or negative.
+func TestLoadRejectsNonPositiveHTTPClientTimeout(t *testing.T) {
+	for _, value := range []string{"0s", "-1s"} {
+		t.Run(value, func(t *testing.T) {
+			t.Setenv("GOOGLE_CLIENT_ID", "client-id")
+			t.Setenv("GOOGLE_CLIENT_SECRET", "client-secret")
+			t.Setenv("HTTP_CLIENT_TIMEOUT", value)
+
+			_, err := Load()
+			if err == nil {
+				t.Fatalf("expected error for %q", value)
+			}
+			if !strings.Contains(err.Error(), "HTTP_CLIENT_TIMEOUT") {
 				t.Fatalf("unexpected error: %v", err)
 			}
 		})

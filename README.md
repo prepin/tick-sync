@@ -38,6 +38,7 @@ Common environment variables:
 | `HTTP_ADDR` | No | `:8080` | Local HTTP server address. |
 | `HTTP_BASIC_AUTH_USERNAME` | No | `tick-sync` | Username for HTTP Basic Auth when `HTTP_BASIC_AUTH_PASSWORD` is set. |
 | `HTTP_BASIC_AUTH_PASSWORD` | No | | Password for HTTP Basic Auth. Empty disables HTTP Basic Auth. Set this when exposing the HTTP server beyond localhost. |
+| `HTTP_CLIENT_TIMEOUT` | No | `30s` | Timeout for outbound OAuth, Google Tasks, and TickTick HTTP requests. |
 | `POLL_INTERVAL` | No | `5m` | How often to sync Google Tasks to TickTick. |
 | `GOOGLE_POST_SYNC_ACTION` | No | `complete` | `complete` or `delete` Google Tasks after successful sync. |
 | `GOOGLE_TODAY_IMPORT_DELAY` | No | `false` | Delay importing tasks due today until they become overdue. |

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"google.golang.org/api/option"
 	tasksapi "google.golang.org/api/tasks/v1"
@@ -22,6 +23,23 @@ func TestNewRejectsMissingTokenStore(t *testing.T) {
 	_, err := New(t.Context(), config.Config{GoogleClientID: "client-id", GoogleClientSecret: "client-secret"}, nil)
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+// Configures the outbound Google Tasks API HTTP client timeout from application config.
+func TestNewConfiguresHTTPClientTimeout(t *testing.T) {
+	t.Parallel()
+
+	client, err := New(t.Context(), config.Config{
+		GoogleAPIEndpoint: "https://example.com/",
+		HTTPClientTimeout: 12 * time.Second,
+	}, nil)
+	if err != nil {
+		t.Fatalf("new google tasks client: %v", err)
+	}
+
+	if client.httpClient.Timeout != 12*time.Second {
+		t.Fatalf("unexpected timeout: %s", client.httpClient.Timeout)
 	}
 }
 
