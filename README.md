@@ -36,6 +36,8 @@ Common environment variables:
 | `TICKTICK_CLIENT_SECRET` | Yes | | TickTick OAuth client secret. |
 | `DB_PATH` | No | `./tick-sync.db` | SQLite database path. |
 | `HTTP_ADDR` | No | `:8080` | Local HTTP server address. |
+| `HTTP_BASIC_AUTH_USERNAME` | No | `tick-sync` | Username for HTTP Basic Auth when `HTTP_BASIC_AUTH_PASSWORD` is set. |
+| `HTTP_BASIC_AUTH_PASSWORD` | No | | Password for HTTP Basic Auth. Empty disables HTTP Basic Auth. Set this when exposing the HTTP server beyond localhost. |
 | `POLL_INTERVAL` | No | `5m` | How often to sync Google Tasks to TickTick. |
 | `GOOGLE_POST_SYNC_ACTION` | No | `complete` | `complete` or `delete` Google Tasks after successful sync. |
 | `GOOGLE_TODAY_IMPORT_DELAY` | No | `false` | Delay importing tasks due today until they become overdue. |
@@ -108,6 +110,8 @@ http://localhost:8080/
 ```
 
 6. Click `Connect Google Tasks`, approve access, then click `Connect TickTick` and approve access. Tokens are stored in SQLite.
+
+If `HTTP_ADDR` is reachable from other machines, set `HTTP_BASIC_AUTH_PASSWORD` so the setup UI and OAuth callback endpoints require HTTP Basic Auth.
 
 More details:
 

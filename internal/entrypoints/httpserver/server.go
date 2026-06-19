@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/prepin/tick-sync/internal/config"
@@ -15,8 +17,10 @@ import (
 
 // Server runs the local web UI.
 type Server struct {
-	server *http.Server
-	logger *slog.Logger
+	server             *http.Server
+	logger             *slog.Logger
+	basicAuthEnabled   bool
+	publicBindPossible bool
 }
 
 // New creates a local HTTP server for browser-based auth flows.
@@ -28,7 +32,9 @@ func New(cfg config.Config, tokens TokenStore, opts ...Option) *Server {
 			Handler:           h.routes(),
 			ReadHeaderTimeout: 5 * time.Second,
 		},
-		logger: slog.New(slog.DiscardHandler),
+		logger:             slog.New(slog.DiscardHandler),
+		basicAuthEnabled:   cfg.HTTPBasicAuthPassword != "",
+		publicBindPossible: isPublicBindAddress(cfg.HTTPAddr),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -62,9 +68,29 @@ func (s *Server) run(ctx context.Context) {
 	}()
 
 	s.logger.InfoContext(ctx, "http server started", "addr", s.server.Addr)
+	if s.publicBindPossible && !s.basicAuthEnabled {
+		s.logger.WarnContext(ctx, "http server may be reachable from other hosts without basic auth", "addr", s.server.Addr)
+	}
 	if err := s.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		s.logger.ErrorContext(ctx, "http server failed", "error", err)
 	}
+}
+
+func isPublicBindAddress(addr string) bool {
+	if strings.HasPrefix(addr, ":") {
+		return true
+	}
+
+	host, _, err := net.SplitHostPort(addr)
+	if err != nil {
+		return false
+	}
+	if host == "" || host == "0.0.0.0" || host == "::" || host == "[::]" {
+		return true
+	}
+
+	parsed := net.ParseIP(strings.Trim(host, "[]"))
+	return parsed != nil && parsed.IsUnspecified()
 }
 
 // TokenStore is the storage required by the auth handlers.

@@ -41,6 +41,12 @@ func TestLoadAppliesOperationalDefaults(t *testing.T) {
 	if cfg.HTTPAddr != ":8080" {
 		t.Fatalf("unexpected http addr: %s", cfg.HTTPAddr)
 	}
+	if cfg.HTTPBasicAuthUsername != "tick-sync" {
+		t.Fatalf("unexpected http basic auth username: %s", cfg.HTTPBasicAuthUsername)
+	}
+	if cfg.HTTPBasicAuthPassword != "" {
+		t.Fatalf("unexpected http basic auth password: %s", cfg.HTTPBasicAuthPassword)
+	}
 	if cfg.GooglePostSyncAction != googletasksync.PostSyncActionComplete {
 		t.Fatalf("unexpected post sync action: %s", cfg.GooglePostSyncAction)
 	}

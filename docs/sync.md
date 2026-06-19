@@ -22,6 +22,8 @@ The sync command:
 ```env
 DB_PATH=./tick-sync.db
 HTTP_ADDR=:8080
+HTTP_BASIC_AUTH_USERNAME=tick-sync
+HTTP_BASIC_AUTH_PASSWORD=
 POLL_INTERVAL=5m
 TICKTICK_REMINDER_INTERVAL=24h
 GOOGLE_POST_SYNC_ACTION=complete
@@ -47,6 +49,8 @@ When `TICKTICK_PROJECT_ID` is empty, the client omits `projectId` and attempts t
 When `GOOGLE_TODAY_IMPORT_DELAY=true`, Google tasks due today are left in Google Tasks and imported only after they become overdue. This avoids importing tasks created from commands like "remind me in 15 minutes" as all-day TickTick tasks, because the Google Tasks API does not expose due times.
 
 The service starts even before Google Tasks or TickTick are connected. Complete both auth flows at `http://localhost:8080/`. Until then, sync attempts report the missing provider token and the next poll retries.
+
+When `HTTP_BASIC_AUTH_PASSWORD` is set, the setup UI and OAuth callback endpoints require HTTP Basic Auth. Set it when `HTTP_ADDR` is reachable from other machines.
 
 If the stored TickTick token expires in less than two weeks, the service creates one medium-priority TickTick task reminding you to refresh it. This reminder is created once per token and has no due date.
 

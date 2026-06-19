@@ -43,6 +43,94 @@ func TestIndexShowsConnectLinks(t *testing.T) {
 	}
 }
 
+// Allows requests without credentials when HTTP basic auth is not configured.
+func TestBasicAuthDisabledWhenPasswordIsEmpty(t *testing.T) {
+	t.Parallel()
+	h := newHandler(config.Config{HTTPBasicAuthUsername: "tick-sync"}, newTestTokenRepo(t))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	h.routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("unexpected status: %d", rec.Code)
+	}
+}
+
+// Rejects requests without credentials when HTTP basic auth is configured.
+func TestBasicAuthRejectsMissingCredentials(t *testing.T) {
+	t.Parallel()
+	h := newHandler(config.Config{
+		HTTPBasicAuthUsername: "tick-sync",
+		HTTPBasicAuthPassword: "secret",
+	}, newTestTokenRepo(t))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+
+	h.routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unexpected status: %d", rec.Code)
+	}
+	if rec.Header().Get("WWW-Authenticate") == "" {
+		t.Fatal("expected basic auth challenge")
+	}
+}
+
+// Rejects requests with incorrect HTTP basic auth credentials.
+func TestBasicAuthRejectsWrongCredentials(t *testing.T) {
+	t.Parallel()
+	h := newHandler(config.Config{
+		HTTPBasicAuthUsername: "tick-sync",
+		HTTPBasicAuthPassword: "secret",
+	}, newTestTokenRepo(t))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.SetBasicAuth("tick-sync", "wrong")
+	rec := httptest.NewRecorder()
+
+	h.routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unexpected status: %d", rec.Code)
+	}
+}
+
+// Allows requests with matching HTTP basic auth credentials.
+func TestBasicAuthAcceptsValidCredentials(t *testing.T) {
+	t.Parallel()
+	h := newHandler(config.Config{
+		HTTPBasicAuthUsername: "tick-sync",
+		HTTPBasicAuthPassword: "secret",
+	}, newTestTokenRepo(t))
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.SetBasicAuth("tick-sync", "secret")
+	rec := httptest.NewRecorder()
+
+	h.routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("unexpected status: %d", rec.Code)
+	}
+}
+
+// Protects OAuth callbacks with HTTP basic auth when it is configured.
+func TestBasicAuthProtectsOAuthCallback(t *testing.T) {
+	t.Parallel()
+	h := newHandler(config.Config{
+		HTTPBasicAuthUsername: "tick-sync",
+		HTTPBasicAuthPassword: "secret",
+	}, newTestTokenRepo(t))
+	req := httptest.NewRequest(http.MethodGet, "/google/callback?code=auth-code&state=state-1", nil)
+	req.AddCookie(&http.Cookie{Name: "google_oauth_state", Value: "state-1"})
+	rec := httptest.NewRecorder()
+
+	h.routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("unexpected status: %d", rec.Code)
+	}
+}
+
 // Redirects the browser to Google authorization with offline access and forced consent.
 func TestGoogleAuthRedirectsToProvider(t *testing.T) {
 	t.Parallel()

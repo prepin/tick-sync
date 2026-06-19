@@ -17,6 +17,8 @@ import (
 type Config struct {
 	DBPath                   string                        `env:"DB_PATH"                    envDefault:"./tick-sync.db"`
 	HTTPAddr                 string                        `env:"HTTP_ADDR"                  envDefault:":8080"`
+	HTTPBasicAuthUsername    string                        `env:"HTTP_BASIC_AUTH_USERNAME"   envDefault:"tick-sync"`
+	HTTPBasicAuthPassword    string                        `env:"HTTP_BASIC_AUTH_PASSWORD"`
 	GooglePostSyncAction     googletasksync.PostSyncAction `env:"GOOGLE_POST_SYNC_ACTION"    envDefault:"complete"`
 	GoogleTodayImportDelay   bool                          `env:"GOOGLE_TODAY_IMPORT_DELAY"  envDefault:"false"`
 	PollInterval             time.Duration                 `env:"POLL_INTERVAL"              envDefault:"5m"`

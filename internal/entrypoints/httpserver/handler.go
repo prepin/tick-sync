@@ -3,6 +3,7 @@ package httpserver
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
@@ -65,7 +66,32 @@ func (h *handler) routes() http.Handler {
 	mux.HandleFunc("GET /google/callback", h.googleCallback)
 	mux.HandleFunc("GET /ticktick/auth", h.tickTickAuth)
 	mux.HandleFunc("GET /ticktick/callback", h.tickTickCallback)
-	return mux
+	return h.withBasicAuth(mux)
+}
+
+func (h *handler) withBasicAuth(next http.Handler) http.Handler {
+	if h.cfg.HTTPBasicAuthPassword == "" {
+		return next
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		if !ok ||
+			!constantTimeStringEqual(username, h.cfg.HTTPBasicAuthUsername) ||
+			!constantTimeStringEqual(password, h.cfg.HTTPBasicAuthPassword) {
+			w.Header().Set("WWW-Authenticate", `Basic realm="tick-sync", charset="UTF-8"`)
+			http.Error(w, "authentication required", http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func constantTimeStringEqual(left, right string) bool {
+	leftHash := sha256.Sum256([]byte(left))
+	rightHash := sha256.Sum256([]byte(right))
+	return subtle.ConstantTimeCompare(leftHash[:], rightHash[:]) == 1
 }
 
 func (h *handler) index(w http.ResponseWriter, r *http.Request) {

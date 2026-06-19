@@ -68,6 +68,15 @@ http://localhost:8080/
 
 Click `Connect Google Tasks`, approve access, then click `Connect TickTick` and approve access. OAuth tokens are stored in the configured SQLite database.
 
+If the HTTP server is reachable from other machines, protect the setup UI with HTTP Basic Auth:
+
+```env
+HTTP_BASIC_AUTH_USERNAME=tick-sync
+HTTP_BASIC_AUTH_PASSWORD=choose-a-password
+```
+
+Basic Auth also protects OAuth callback URLs. Browsers usually reuse credentials after you sign in to `/`; if a callback opens in a fresh browser profile, it may prompt for the same credentials before completing the connection.
+
 ## Security
 
 Do not commit `.env`, client secrets, access tokens, or copied OAuth responses.
