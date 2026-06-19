@@ -33,6 +33,15 @@ dockers_v2:
     tags:
       - '{{ .Tag }}'
       - latest
+    labels:
+      org.opencontainers.image.title: tick-sync
+      org.opencontainers.image.description: Sync Google Tasks to TickTick
+      org.opencontainers.image.url: https://github.com/prepin/tick-sync
+      org.opencontainers.image.source: https://github.com/prepin/tick-sync
+      org.opencontainers.image.version: '{{ .Version }}'
+      org.opencontainers.image.revision: '{{ .Commit }}'
+      org.opencontainers.image.created: '{{ .Date }}'
+      org.opencontainers.image.licenses: MIT
     platforms:
       - linux/amd64
       - linux/arm64
