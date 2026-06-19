@@ -17,6 +17,7 @@ import (
 
 	"github.com/prepin/tick-sync/internal/config"
 	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
+	"github.com/prepin/tick-sync/internal/version"
 )
 
 const (
@@ -37,6 +38,7 @@ var indexTemplate = template.Must(template.New("index").Parse(`<!doctype html>
   <p>{{.TickTickStatus}}</p>
   <p><a href="/ticktick/auth">Connect TickTick</a></p>
 </main>
+<footer><small>tick-sync {{.Version}}</small></footer>
 </body>
 </html>`))
 
@@ -109,6 +111,7 @@ func (h *handler) index(w http.ResponseWriter, r *http.Request) {
 	data := map[string]string{
 		"GoogleStatus":   statusText(r.Context(), h.tokens, oauthtokens.ProviderGoogle, "Google Tasks"),
 		"TickTickStatus": statusText(r.Context(), h.tokens, oauthtokens.ProviderTickTick, "TickTick"),
+		"Version":        version.Version,
 	}
 	if err := indexTemplate.Execute(w, data); err != nil {
 		http.Error(w, "render page", http.StatusInternalServerError)

@@ -11,6 +11,8 @@ builds:
   - id: tick-sync
     main: ./cmd/app
     binary: tick-sync
+    ldflags:
+      - -s -w -X github.com/prepin/tick-sync/internal/version.Version={{ .Version }}
     env:
       - CGO_ENABLED=0
     goos:

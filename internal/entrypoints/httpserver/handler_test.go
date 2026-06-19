@@ -42,6 +42,9 @@ func TestIndexShowsConnectLinks(t *testing.T) {
 	if !strings.Contains(rec.Body.String(), "/ticktick/auth") {
 		t.Fatalf("expected auth link, got %q", rec.Body.String())
 	}
+	if !strings.Contains(rec.Body.String(), "tick-sync dev") {
+		t.Fatalf("expected app version, got %q", rec.Body.String())
+	}
 }
 
 // Allows requests without credentials when HTTP basic auth is not configured.
