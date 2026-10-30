@@ -145,7 +145,9 @@ func (a *App) configureSync(ctx context.Context, tokenRepo *oauthtokens.Repo) er
 		googletasksync.WithTodayImportDelay(a.cfg.GoogleTodayImportDelay),
 		googletasksync.WithLocation(a.cfg.Location),
 	)
-	reminderUC := tickticktokenreminder.New(tokenRepo, ticktick)
+	reminderUC := tickticktokenreminder.New(
+		tokenRepo, ticktick, google, tickticktokenreminder.WithLocation(a.cfg.Location),
+	)
 	a.jobs = []Runner{
 		googletasksyncjob.New(uc, a.cfg.PollInterval, googletasksyncjob.WithLogger(a.logger)),
 		tickticktokenreminderjob.New(

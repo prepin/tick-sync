@@ -9,7 +9,7 @@ import (
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 )
 
-// Handle creates a single medium-priority reminder task when the stored token expires within two weeks.
+// Handle reminds in TickTick within two weeks of expiry, or in Google Tasks after expiry.
 func (u *UseCase) Handle(ctx context.Context) error {
 	token, err := u.tokens.Get(ctx, oauthtokens.ProviderTickTick)
 	if errors.Is(err, oauthtokens.ErrTokenNotFound) {
@@ -17,6 +17,9 @@ func (u *UseCase) Handle(ctx context.Context) error {
 	}
 	if err != nil {
 		return fmt.Errorf("get ticktick token: %w", err)
+	}
+	if !token.ExpiresAt.IsZero() && !token.ExpiresAt.After(u.now()) {
+		return u.createExpiryReminder(ctx, token)
 	}
 	if !u.shouldCreateReminder(token) {
 		return nil

@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,7 +17,9 @@ import (
 
 	"github.com/prepin/tick-sync/internal/config"
 	googletasksyncjob "github.com/prepin/tick-sync/internal/entrypoints/cron/googletasksync"
+	tickticktokenreminderjob "github.com/prepin/tick-sync/internal/entrypoints/cron/tickticktokenreminder"
 	googletasksrepo "github.com/prepin/tick-sync/internal/infra/sqlite/googletasks"
+	"github.com/prepin/tick-sync/internal/infra/sqlite/oauthtokens"
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
 	"github.com/prepin/tick-sync/internal/usecase/googletasksync/mocks"
 )
@@ -53,6 +58,78 @@ func TestNewAllowsMissingTickTickAccessToken(t *testing.T) {
 		t.Fatalf("new app: %v", err)
 	}
 	t.Cleanup(func() { application.Close() })
+}
+
+// Persists expiry reminders across app restarts and allows another reminder for a replacement TickTick token.
+func TestAppExpiryReminderSurvivesRestartAndResetsOnReconnect(t *testing.T) {
+	t.Parallel()
+	var googleCreations atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/tasks/v1/lists/@default/tasks" {
+			t.Errorf("unexpected provider request: %s %s", r.Method, r.URL.Path)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		googleCreations.Add(1)
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"id":"google-reminder"}`))
+	}))
+	t.Cleanup(server.Close)
+	cfg := config.Config{
+		DBPath:             filepath.Join(t.TempDir(), "tick-sync.db"),
+		GoogleAPIEndpoint:  server.URL + "/",
+		GoogleTaskListID:   "@default",
+		TickTickAPIBaseURL: server.URL + "/ticktick",
+		Location:           time.UTC,
+	}
+	first, err := New(t.Context(), cfg)
+	if err != nil {
+		t.Fatalf("create first app: %v", err)
+	}
+	t.Cleanup(func() { first.Close() })
+	tokens, err := oauthtokens.New(first.db)
+	if err != nil {
+		t.Fatalf("open token repository: %v", err)
+	}
+	token := oauthtokens.Token{
+		AccessToken: "expired-token", ExpiresAt: time.Now().Add(-time.Hour),
+		RefreshReminderTaskID: "existing-ticktick-reminder",
+	}
+	if err := tokens.Save(t.Context(), oauthtokens.ProviderTickTick, token); err != nil {
+		t.Fatalf("save expired token: %v", err)
+	}
+	if err := first.jobs[1].(*tickticktokenreminderjob.Job).Execute(t.Context()); err != nil {
+		t.Fatalf("create first reminder: %v", err)
+	}
+	if err := first.Close(); err != nil {
+		t.Fatalf("close first app: %v", err)
+	}
+	second, err := New(t.Context(), cfg)
+	if err != nil {
+		t.Fatalf("restart app: %v", err)
+	}
+	t.Cleanup(func() { second.Close() })
+	job := second.jobs[1].(*tickticktokenreminderjob.Job)
+	if err := job.Execute(t.Context()); err != nil {
+		t.Fatalf("check reminder after restart: %v", err)
+	}
+	if got := googleCreations.Load(); got != 1 {
+		t.Fatalf("expected one reminder after restart, got %d", got)
+	}
+	tokens, err = oauthtokens.New(second.db)
+	if err != nil {
+		t.Fatalf("reopen token repository: %v", err)
+	}
+	token.AccessToken = "replacement-token"
+	if err := tokens.Save(t.Context(), oauthtokens.ProviderTickTick, token); err != nil {
+		t.Fatalf("save replacement token: %v", err)
+	}
+	if err := job.Execute(t.Context()); err != nil {
+		t.Fatalf("create replacement token reminder: %v", err)
+	}
+	if got := googleCreations.Load(); got != 2 {
+		t.Fatalf("expected a reminder for each token, got %d", got)
+	}
 }
 
 // Runs the sync job once and returns nil when the context is cancelled after the first execution.

@@ -14,8 +14,48 @@ import (
 	reflect "reflect"
 
 	googletasksync "github.com/prepin/tick-sync/internal/usecase/googletasksync"
+	tickticktokenreminder "github.com/prepin/tick-sync/internal/usecase/tickticktokenreminder"
 	gomock "go.uber.org/mock/gomock"
 )
+
+// MockGoogleTasksGateway is a mock of GoogleTasksGateway interface.
+type MockGoogleTasksGateway struct {
+	ctrl     *gomock.Controller
+	recorder *MockGoogleTasksGatewayMockRecorder
+	isgomock struct{}
+}
+
+// MockGoogleTasksGatewayMockRecorder is the mock recorder for MockGoogleTasksGateway.
+type MockGoogleTasksGatewayMockRecorder struct {
+	mock *MockGoogleTasksGateway
+}
+
+// NewMockGoogleTasksGateway creates a new mock instance.
+func NewMockGoogleTasksGateway(ctrl *gomock.Controller) *MockGoogleTasksGateway {
+	mock := &MockGoogleTasksGateway{ctrl: ctrl}
+	mock.recorder = &MockGoogleTasksGatewayMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockGoogleTasksGateway) EXPECT() *MockGoogleTasksGatewayMockRecorder {
+	return m.recorder
+}
+
+// CreateTask mocks base method.
+func (m *MockGoogleTasksGateway) CreateTask(ctx context.Context, input tickticktokenreminder.CreateGoogleTaskInput) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTask", ctx, input)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTask indicates an expected call of CreateTask.
+func (mr *MockGoogleTasksGatewayMockRecorder) CreateTask(ctx, input any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTask", reflect.TypeOf((*MockGoogleTasksGateway)(nil).CreateTask), ctx, input)
+}
 
 // MockTickTickGateway is a mock of TickTickGateway interface.
 type MockTickTickGateway struct {

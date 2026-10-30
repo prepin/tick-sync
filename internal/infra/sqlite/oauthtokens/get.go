@@ -8,7 +8,8 @@ import (
 )
 
 const queryGetToken = `
-SELECT access_token, token_type, scope, expires_at, refresh_token, updated_at, refresh_reminder_task_id, refresh_reminder_created_at
+SELECT access_token, token_type, scope, expires_at, refresh_token, updated_at,
+       refresh_reminder_task_id, refresh_reminder_created_at, expiry_reminder_task_id, expiry_reminder_created_at
 FROM oauth_tokens
 WHERE provider = ?;`
 
@@ -19,6 +20,8 @@ func (r *Repo) Get(ctx context.Context, provider string) (Token, error) {
 	var updatedAt string
 	var refreshReminderTaskID sql.NullString
 	var refreshReminderCreatedAt sql.NullString
+	var expiryReminderTaskID sql.NullString
+	var expiryReminderCreatedAt sql.NullString
 	err := r.db.QueryRowContext(ctx, queryGetToken, provider).Scan(
 		&token.AccessToken,
 		&token.TokenType,
@@ -28,6 +31,8 @@ func (r *Repo) Get(ctx context.Context, provider string) (Token, error) {
 		&updatedAt,
 		&refreshReminderTaskID,
 		&refreshReminderCreatedAt,
+		&expiryReminderTaskID,
+		&expiryReminderCreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Token{}, ErrTokenNotFound
@@ -50,5 +55,10 @@ func (r *Repo) Get(ctx context.Context, provider string) (Token, error) {
 		return Token{}, fmt.Errorf("parse oauth token refresh reminder creation time: %w", err)
 	}
 
+	token.ExpiryReminderTaskID = expiryReminderTaskID.String
+	token.ExpiryReminderCreatedAt, err = parseOptionalTime(expiryReminderCreatedAt.String)
+	if err != nil {
+		return Token{}, fmt.Errorf("parse oauth token expiry reminder creation time: %w", err)
+	}
 	return token, nil
 }

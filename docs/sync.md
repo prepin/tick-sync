@@ -60,7 +60,22 @@ When `HTTP_BASIC_AUTH_PASSWORD` is set, the setup UI and OAuth callback endpoint
 
 If the stored TickTick token expires in less than two weeks, the service creates one medium-priority TickTick task reminding you to refresh it. This reminder is created once per token and has no due date.
 
-`TICKTICK_REMINDER_INTERVAL` controls how often the token reminder check runs. It defaults to `24h`.
+If the stored TickTick token expires, the service creates a separate reminder in the configured Google task list. The earlier TickTick reminder does not suppress this Google reminder.
+
+The Google reminder uses the next noon in the `TZ` timezone, or the system timezone if `TZ` is unset:
+
+- Before or exactly 12 PM (noon), the due date is today.
+- After noon, the due date is tomorrow.
+
+The Google Tasks API stores only the date and discards the time. The reminder notes include the intended noon time and timezone. This does not schedule a noon notification.
+
+The service records the Google reminder separately for each TickTick token. Repeated checks and restarts do not create another reminder after that record succeeds. A new TickTick access token resets the record. A crash between task creation and database recording can cause a duplicate reminder.
+
+The Google reminder contains the reserved notes line `[tick-sync:ticktick-token-expired]`. Sync leaves tasks with this exact line in Google Tasks, without copying, completing, or deleting them. These reminders remain in Google Tasks after reconnection.
+
+The Google reminder requires usable Google credentials. If creation fails, the service logs the error and retries at the next check. The expiry check uses the stored TickTick expiry time. It does not detect revoked tokens before that time or tokens without a known expiry.
+
+`TICKTICK_REMINDER_INTERVAL` controls both reminder checks. The service checks at startup, then repeats at this interval. The default is `24h`, so expiry detection can take up to 24 hours.
 
 Stop it with Ctrl+C or SIGTERM.
 

@@ -26,7 +26,7 @@ func TestSaveStoresToken(t *testing.T) {
 	}
 }
 
-// Preserves the refresh reminder marker when the same token is saved again.
+// Preserves both reminder markers when the same token is saved again.
 func TestSavePreservesReminderForSameToken(t *testing.T) {
 	t.Parallel()
 	repo := newTestRepo(t)
@@ -43,6 +43,11 @@ func TestSavePreservesReminderForSameToken(t *testing.T) {
 	); err != nil {
 		t.Fatalf("mark refresh reminder created: %v", err)
 	}
+	if err := repo.MarkExpiryReminderCreated(
+		t.Context(), ProviderTickTick, "access-1", "google-reminder", tokenFixture().UpdatedAt,
+	); err != nil {
+		t.Fatalf("mark expiry reminder created: %v", err)
+	}
 	if err := repo.Save(t.Context(), ProviderTickTick, tokenFixture()); err != nil {
 		t.Fatalf("save updated oauth token: %v", err)
 	}
@@ -54,9 +59,12 @@ func TestSavePreservesReminderForSameToken(t *testing.T) {
 	if got.RefreshReminderTaskID != "task-1" {
 		t.Fatalf("unexpected reminder task id: %s", got.RefreshReminderTaskID)
 	}
+	if got.ExpiryReminderTaskID != "google-reminder" || !got.ExpiryReminderCreatedAt.Equal(tokenFixture().UpdatedAt) {
+		t.Fatalf("expiry reminder was not preserved: %+v", got)
+	}
 }
 
-// Clears the refresh reminder marker when OAuth stores a new access token.
+// Clears both reminder markers when OAuth stores a new access token.
 func TestSaveClearsReminderForNewToken(t *testing.T) {
 	t.Parallel()
 	repo := newTestRepo(t)
@@ -73,6 +81,11 @@ func TestSaveClearsReminderForNewToken(t *testing.T) {
 	); err != nil {
 		t.Fatalf("mark refresh reminder created: %v", err)
 	}
+	if err := repo.MarkExpiryReminderCreated(
+		t.Context(), ProviderTickTick, "access-1", "google-reminder", tokenFixture().UpdatedAt,
+	); err != nil {
+		t.Fatalf("mark expiry reminder created: %v", err)
+	}
 	updated := tokenFixture()
 	updated.AccessToken = "access-2"
 	if err := repo.Save(t.Context(), ProviderTickTick, updated); err != nil {
@@ -88,5 +101,8 @@ func TestSaveClearsReminderForNewToken(t *testing.T) {
 	}
 	if got.RefreshReminderTaskID != "" {
 		t.Fatalf("expected reminder marker to be cleared, got %s", got.RefreshReminderTaskID)
+	}
+	if got.ExpiryReminderTaskID != "" || !got.ExpiryReminderCreatedAt.IsZero() {
+		t.Fatalf("expected expiry reminder marker to be cleared: %+v", got)
 	}
 }

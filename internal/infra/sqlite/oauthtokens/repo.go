@@ -28,6 +28,8 @@ type Token struct {
 	UpdatedAt                time.Time
 	RefreshReminderTaskID    string
 	RefreshReminderCreatedAt time.Time
+	ExpiryReminderTaskID     string
+	ExpiryReminderCreatedAt  time.Time
 }
 
 // Repo stores OAuth tokens in SQLite.

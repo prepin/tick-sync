@@ -17,8 +17,10 @@ INSERT INTO oauth_tokens (
   refresh_token,
   updated_at,
   refresh_reminder_task_id,
-  refresh_reminder_created_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  refresh_reminder_created_at,
+  expiry_reminder_task_id,
+  expiry_reminder_created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(provider) DO UPDATE SET
   access_token = excluded.access_token,
   token_type = excluded.token_type,
@@ -33,6 +35,14 @@ ON CONFLICT(provider) DO UPDATE SET
   refresh_reminder_created_at = CASE
     WHEN oauth_tokens.access_token = excluded.access_token THEN oauth_tokens.refresh_reminder_created_at
     ELSE excluded.refresh_reminder_created_at
+  END,
+  expiry_reminder_task_id = CASE
+    WHEN oauth_tokens.access_token = excluded.access_token THEN oauth_tokens.expiry_reminder_task_id
+    ELSE excluded.expiry_reminder_task_id
+  END,
+  expiry_reminder_created_at = CASE
+    WHEN oauth_tokens.access_token = excluded.access_token THEN oauth_tokens.expiry_reminder_created_at
+    ELSE excluded.expiry_reminder_created_at
   END;`
 
 // Save stores the latest OAuth token for a provider.
@@ -52,6 +62,8 @@ func (r *Repo) Save(ctx context.Context, provider string, token Token) error {
 		formatTime(updatedAt),
 		token.RefreshReminderTaskID,
 		formatTime(token.RefreshReminderCreatedAt),
+		token.ExpiryReminderTaskID,
+		formatTime(token.ExpiryReminderCreatedAt),
 	)
 	if err != nil {
 		return fmt.Errorf("save oauth token %s: %w", provider, err)

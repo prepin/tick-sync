@@ -57,6 +57,20 @@ func (mr *MockTokenRepositoryMockRecorder) Get(ctx, provider any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockTokenRepository)(nil).Get), ctx, provider)
 }
 
+// MarkExpiryReminderCreated mocks base method.
+func (m *MockTokenRepository) MarkExpiryReminderCreated(ctx context.Context, provider, accessToken, taskID string, createdAt time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkExpiryReminderCreated", ctx, provider, accessToken, taskID, createdAt)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkExpiryReminderCreated indicates an expected call of MarkExpiryReminderCreated.
+func (mr *MockTokenRepositoryMockRecorder) MarkExpiryReminderCreated(ctx, provider, accessToken, taskID, createdAt any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkExpiryReminderCreated", reflect.TypeOf((*MockTokenRepository)(nil).MarkExpiryReminderCreated), ctx, provider, accessToken, taskID, createdAt)
+}
+
 // MarkRefreshReminderCreated mocks base method.
 func (m *MockTokenRepository) MarkRefreshReminderCreated(ctx context.Context, provider, accessToken, taskID string, createdAt time.Time) error {
 	m.ctrl.T.Helper()

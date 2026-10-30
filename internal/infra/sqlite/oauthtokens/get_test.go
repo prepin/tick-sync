@@ -26,7 +26,8 @@ func TestGetAllowsMissingReminderColumnsOnExistingToken(t *testing.T) {
 	}
 	if _, err := repo.db.ExecContext(
 		t.Context(),
-		`UPDATE oauth_tokens SET refresh_reminder_task_id = NULL, refresh_reminder_created_at = NULL`,
+		`UPDATE oauth_tokens SET refresh_reminder_task_id = NULL, refresh_reminder_created_at = NULL,
+                                expiry_reminder_task_id = NULL, expiry_reminder_created_at = NULL`,
 	); err != nil {
 		t.Fatalf("clear reminder columns: %v", err)
 	}
@@ -37,5 +38,8 @@ func TestGetAllowsMissingReminderColumnsOnExistingToken(t *testing.T) {
 	}
 	if got.RefreshReminderTaskID != "" {
 		t.Fatalf("unexpected reminder task id: %s", got.RefreshReminderTaskID)
+	}
+	if got.ExpiryReminderTaskID != "" || !got.ExpiryReminderCreatedAt.IsZero() {
+		t.Fatalf("unexpected expiry reminder: %+v", got)
 	}
 }

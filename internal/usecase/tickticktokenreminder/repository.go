@@ -17,6 +17,13 @@ type TokenRepository interface {
 		taskID string,
 		createdAt time.Time,
 	) error
+	MarkExpiryReminderCreated(
+		ctx context.Context,
+		provider string,
+		accessToken string,
+		taskID string,
+		createdAt time.Time,
+	) error
 }
 
 //go:generate go tool mockgen -source=repository.go -destination=mocks/repository_mocks.go -package=mocks

@@ -15,6 +15,8 @@ Tick Sync:
 
 - The Google Tasks API exposes task due dates, but not due times. Tick Sync does not sync task times yet.
 - TickTick does not allow automatic token renewal. You will need to reconnect TickTick manually about every six months, but Tick Sync creates a reminder task for you before the token expires.
+- If the TickTick token expires, Tick Sync creates a reminder in Google Tasks. Google authentication must still work.
+- The Google reminder is due today before or exactly noon, or tomorrow after noon, in the configured timezone. Google stores only the date.
 
 ## Installation
 

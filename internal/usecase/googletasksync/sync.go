@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 )
 
@@ -30,6 +32,10 @@ func (u *SyncGoogleTasksToTickTickUseCase) syncTaskToTickTick(
 	googleTask GoogleTaskView,
 	result *SyncGoogleTasksToTickTickResult,
 ) error {
+	if slices.Contains(strings.Split(googleTask.Notes, "\n"), TickTickExpiryReminderMarker) {
+		result.Skipped++
+		return nil
+	}
 	if u.shouldDelayTodayImport(googleTask) {
 		result.Delayed++
 		return nil
