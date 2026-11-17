@@ -66,6 +66,60 @@ func TestUsecaseSyncGoogleTasksToTickTickCreatesRecordsAndCompletesTaskByDefault
 	assertResult(t, result, want)
 }
 
+// Keeps the due date through day 90 and imports later tasks without a date.
+func TestUsecaseSyncGoogleTasksToTickTickAppliesNinetyDayDateCutoff(t *testing.T) {
+	t.Parallel()
+	// It is June 30 in the configured timezone, even though it is July 1 in UTC.
+	now := time.Date(2026, 7, 1, 2, 0, 0, 0, time.UTC)
+	location := time.FixedZone("UTC-7", -7*60*60)
+	const day90 = "2026-09-28T00:00:00.000Z"
+
+	tests := []struct {
+		name    string
+		due     string
+		wantDue string
+	}{
+		{name: "keeps the date at 90 calendar days", due: day90, wantDue: day90},
+		{name: "omits the date at 91 calendar days", due: "2026-09-29T00:00:00.000Z"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			ctx := t.Context()
+			ctrl := gomock.NewController(t)
+			google := mocks.NewMockGoogleTasksGateway(ctrl)
+			ticktick := mocks.NewMockTickTickGateway(ctrl)
+			repo := mocks.NewMockSyncedTaskRepository(ctrl)
+			task := googletasksync.GoogleTaskView{ID: "google-1", Title: "Buy batteries", Due: tt.due}
+
+			google.EXPECT().ListUncompleted(ctx).Return([]googletasksync.GoogleTaskView{task}, nil)
+			repo.EXPECT().GetSyncState(ctx, task.ID).Return(googletasksync.SyncState{}, false, nil)
+			ticktick.EXPECT().CreateInboxTask(ctx, googletasksync.CreateTickTickTaskInput{
+				Title:              task.Title,
+				Due:                tt.wantDue,
+				SourceGoogleTaskID: task.ID,
+			}).Return(googletasksync.TickTickTaskView{ID: "ticktick-1"}, nil)
+			repo.EXPECT().SaveSyncedTask(ctx, gomock.Any()).Return(nil)
+			google.EXPECT().Complete(ctx, task.ID).Return(nil)
+			repo.EXPECT().MarkGoogleTaskFinalized(ctx, task.ID, now).Return(nil)
+
+			result, err := googletasksync.New(
+				google,
+				ticktick,
+				repo,
+				googletasksync.PostSyncActionComplete,
+				googletasksync.WithLocation(location),
+				googletasksync.WithClock(func() time.Time { return now }),
+			).Handle(ctx)
+			if err != nil {
+				t.Fatalf("sync google tasks to ticktick: %v", err)
+			}
+			want := googletasksync.SyncGoogleTasksToTickTickResult{Seen: 1, Created: 1, Completed: 1}
+			assertResult(t, result, want)
+		})
+	}
+}
+
 // Leaves a Google task due today untouched when today imports are delayed.
 func TestUsecaseSyncGoogleTasksToTickTickDelaysTaskDueTodayWhenConfigured(t *testing.T) {
 	t.Parallel()

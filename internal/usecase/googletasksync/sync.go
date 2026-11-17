@@ -56,7 +56,7 @@ func (u *SyncGoogleTasksToTickTickUseCase) syncTaskToTickTick(
 	tickTickTask, err := u.ticktick.CreateInboxTask(ctx, CreateTickTickTaskInput{
 		Title:              googleTask.Title,
 		Details:            googleTask.Notes,
-		Due:                googleTask.Due,
+		Due:                u.tickTickDueDate(googleTask.Due),
 		SourceGoogleTaskID: googleTask.ID,
 	})
 	if err != nil {
@@ -120,4 +120,22 @@ func (u *SyncGoogleTasksToTickTickUseCase) shouldDelayTodayImport(googleTask Goo
 	nowYear, nowMonth, nowDay := u.now().In(u.location).Date()
 
 	return dueYear == nowYear && dueMonth == nowMonth && dueDay == nowDay
+}
+
+func (u *SyncGoogleTasksToTickTickUseCase) tickTickDueDate(value string) string {
+	if value == "" {
+		return ""
+	}
+
+	due, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return value // Let the TickTick client report the invalid date.
+	}
+
+	cutoff := u.now().In(u.location).AddDate(0, 0, 90)
+	// Google exposes a calendar date, not a scheduled time.
+	if due.Format(time.DateOnly) > cutoff.Format(time.DateOnly) {
+		return ""
+	}
+	return value
 }

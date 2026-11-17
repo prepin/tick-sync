@@ -18,6 +18,10 @@ The sync command:
 - Retries Google completion or deletion on later runs if TickTick creation was recorded but Google finalization failed.
 - Continues processing other tasks when one task fails.
 
+If a Google task is due more than 90 calendar days from today, Tick Sync imports it without a date in TickTick.
+Tasks due exactly 90 days from today keep their date. Tick Sync uses `TZ` to determine today.
+This rule also applies to real deadlines. It does not change tasks that already exist in TickTick.
+
 ## Environment Variables
 
 ```env
